@@ -91,9 +91,70 @@ func TestZoteroClientFetchItems(t *testing.T) {
 	})
 }
 
-func assertResponse(t testing.TB, got, want []ZoteroItem) {
+func TestZoteroClientFetchCollections(t *testing.T) {
+	t.Run("fetch all user collections", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			response := `[
+				{
+					"key": "3UL5E9NK",
+					"meta": {
+						"numCollections": 0,
+						"numItems": 1
+					},
+					"data": {
+						"version": 3,
+						"name": "CollectionTest"
+					}
+				},
+				{
+					"key": "SQWT7EXE",
+					"meta": {
+						"numCollections": 0,
+						"numItems": 3
+					},
+					"data": {
+						"version": 10,
+						"name": "CollectionTest2"
+					}
+				}
+			]`
+			fmt.Fprint(w, response)
+		}))
+		defer server.Close()
+
+		client := &ZoteroClient{BaseURL: server.URL, UserID: "TESTID", Client: &http.Client{}}
+
+		want := []Collection{
+			{Key: "3UL5E9NK", Meta: struct {
+				NumItems       int
+				NumCollections int
+			}{1, 0}, Data: struct {
+				Name    string
+				Version int
+			}{"CollectionTest", 3}},
+
+			{Key: "SQWT7EXE", Meta: struct {
+				NumItems       int
+				NumCollections int
+			}{3, 0}, Data: struct {
+				Name    string
+				Version int
+			}{"CollectionTest2", 10}},
+		}
+
+		got, err := client.FetchCollections()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		assertResponse(t, got, want)
+	})
+}
+
+func assertResponse[T any](t testing.TB, got, want []T) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %s, want %s", got, want)
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
