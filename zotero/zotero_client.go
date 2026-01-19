@@ -15,33 +15,25 @@ type ZoteroClient struct {
 
 func (z *ZoteroClient) FetchAllItems() ([]ZoteroItem, error) {
 	url := fmt.Sprintf("%s/users/%s/items", z.BaseURL, z.UserID)
-	res, err := z.Client.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed")
-	}
-	defer res.Body.Close()
-
-	var apiResponse []ZoteroItem
-	if err := json.NewDecoder(res.Body).Decode(&apiResponse); err != nil {
-		return nil, fmt.Errorf("failed")
-	}
-
-	return apiResponse, nil
+	return z.fetchItems(url)
 }
 
 func (z *ZoteroClient) FetchItemsByCategory(collectionKey string) ([]ZoteroItem, error) {
 	url := fmt.Sprintf("%s/users/%s/collections/%s/items", z.BaseURL, z.UserID, collectionKey)
+	return z.fetchItems(url)
+}
 
+func (z *ZoteroClient) fetchItems(url string) ([]ZoteroItem, error) {
 	res, err := z.Client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed")
+		return nil, fmt.Errorf("failed to fetch items: %w", err)
 	}
 	defer res.Body.Close()
 
-	var apiResponse []ZoteroItem
-	if err := json.NewDecoder(res.Body).Decode(&apiResponse); err != nil {
-		return nil, fmt.Errorf("failed")
+	var items []ZoteroItem
+	if err := json.NewDecoder(res.Body).Decode(&items); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return apiResponse, nil
+	return items, nil
 }
