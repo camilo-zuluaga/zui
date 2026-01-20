@@ -3,11 +3,18 @@ package zotero
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
 func fetch[T any](c *ZoteroClient, url string) ([]T, error) {
-	res, err := c.Client.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.ApiKey))
+
+	res, err := c.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch: %w", err)
 	}
@@ -24,6 +31,6 @@ func fetch[T any](c *ZoteroClient, url string) ([]T, error) {
 func (z *ZoteroClient) buildURL(segments ...string) string {
 	u, _ := url.Parse(z.BaseURL)
 	pathParts := append([]string{"users", z.UserID}, segments...)
-	u.JoinPath(pathParts...)
+	u = u.JoinPath(pathParts...)
 	return u.String()
 }
