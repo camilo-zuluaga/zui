@@ -1,6 +1,7 @@
 package zotero
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -25,14 +26,16 @@ func TestZoteroClientFetchItems(t *testing.T) {
 				Title:    "BookTest",
 			}},
 		}
-		got, err := client.FetchAllItems()
+
+		ctx := context.Background()
+		got, err := client.FetchAllItems(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error %v", err)
 		}
 		assertResponse(t, got, want)
 	})
 
-	t.Run("return user's items by category", func(t *testing.T) {
+	t.Run("return user's items by collection", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			response := `[
@@ -82,7 +85,8 @@ func TestZoteroClientFetchItems(t *testing.T) {
 			},
 		}
 
-		got, err := client.FetchItemsByCategory("3UL5E9NK")
+		ctx := context.Background()
+		got, err := client.FetchItemsByCategory(ctx, "3UL5E9NK")
 		if err != nil {
 			t.Fatalf("unexpected error %v", err)
 		}
@@ -143,7 +147,8 @@ func TestZoteroClientFetchCollections(t *testing.T) {
 			}{"CollectionTest2", 10}},
 		}
 
-		got, err := client.FetchCollections()
+		ctx := context.Background()
+		got, err := client.FetchCollections(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
