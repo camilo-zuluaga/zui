@@ -15,32 +15,58 @@ func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error)
 	currentURL := url
 
 	for currentURL != "" {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, currentURL, nil)
+		items, nextURL, err := fetchPage[T](c, ctx, currentURL)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.ApiKey))
-
-		res, err := c.Client.Do(req)
-		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return nil, err
-			}
 			return nil, err
 		}
 
-		var items []T
-		if err := json.NewDecoder(res.Body).Decode(&items); err != nil {
-			res.Body.Close()
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-
 		allItems = append(allItems, items...)
-		currentURL = parseNextURL(&res.Header)
-		res.Body.Close()
+		currentURL = nextURL
 	}
 
 	return allItems, nil
+}
+
+func fetchPage[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, string, error) {
+	res, err := makeRequest(c, ctx, url)
+	if err != nil {
+		return nil, "", err
+	}
+	defer res.Body.Close()
+
+	items, err := decodeResponse[T](res)
+	if err != nil {
+		return nil, "", err
+	}
+
+	nextURL := parseNextURL(&res.Header)
+	return items, nextURL, nil
+}
+
+func makeRequest(c *ZoteroClient, ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.ApiKey))
+
+	res, err := c.Client.Do(req)
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func decodeResponse[T any](res *http.Response) ([]T, error) {
+	var items []T
+	if err := json.NewDecoder(res.Body).Decode(&items); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return items, nil
 }
 
 func parseNextURL(h *http.Header) string {
