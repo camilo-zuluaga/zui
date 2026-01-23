@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-var baseURL = "https://api.zotero.org"
+// var baseURL = "https://api.zotero.org"
 
 type ItemsQuery struct {
 	CollectionKey string
@@ -17,7 +17,7 @@ type ItemsQuery struct {
 	Limit         int
 }
 
-func buildItemsURL(userID string, opts ItemsQuery) (string, error) {
+func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return "", fmt.Errorf("invalid base URL: %w", err)
