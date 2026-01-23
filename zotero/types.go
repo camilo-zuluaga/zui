@@ -32,6 +32,6 @@ type Data struct {
 
 type Collection struct {
 	Key  string `json:"key"`
-	Meta Meta
-	Data Data
+	Meta Meta   `json:"meta"`
+	Data Data   `json:"data"`
 }
