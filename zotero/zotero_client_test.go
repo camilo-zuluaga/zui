@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestZoteroClientFetchItems(t *testing.T) {
@@ -21,7 +22,6 @@ func TestZoteroClientFetchItems(t *testing.T) {
 
 		want := []ZoteroItem{
 			{Key: "W8GMZJZ3", Data: ZoteroItemData{
-				Key:      "W8GMZJZ3",
 				ItemType: "book",
 				Title:    "BookTest",
 			}},
@@ -45,15 +45,15 @@ func TestZoteroClientFetchItems(t *testing.T) {
 						"key": "ZFJV8EKW",
 						"itemType": "book",
 						"title": "Learning Go",
-						"collections": ["3UL5E9NK"]
-					}
-				},
-				{
-					"key": "ABC12345",
-					"data": {
-						"key": "ABC12345",
-						"itemType": "book",
-						"title": "Go Programming Patterns",
+						"date": "2021",
+						"numPages": "550",
+			            "creators": [
+							{
+								"creatorType": "author",
+								"firstName": "Jon",
+								"lastName": "Bodner"
+							}
+						],
 						"collections": ["3UL5E9NK"]
 					}
 				}
@@ -68,25 +68,20 @@ func TestZoteroClientFetchItems(t *testing.T) {
 			{
 				Key: "ZFJV8EKW",
 				Data: ZoteroItemData{
-					Key:         "ZFJV8EKW",
-					ItemType:    "book",
-					Title:       "Learning Go",
-					Collections: []string{"3UL5E9NK"},
-				},
-			},
-			{
-				Key: "ABC12345",
-				Data: ZoteroItemData{
-					Key:         "ABC12345",
-					ItemType:    "book",
-					Title:       "Go Programming Patterns",
+					ItemType: "book",
+					Title:    "Learning Go",
+					Date:     "2021",
+					NumPages: "550",
+					Creators: []ZoteroItemCreator{
+						{CreatorType: "author", FirstName: "Jon", LastName: "Bodner"},
+					},
 					Collections: []string{"3UL5E9NK"},
 				},
 			},
 		}
 
 		ctx := context.Background()
-		got, err := client.FetchItemsByCategory(ctx, "3UL5E9NK")
+		got, err := client.FetchItemsByCollection(ctx, "3UL5E9NK")
 		if err != nil {
 			t.Fatalf("unexpected error %v", err)
 		}
@@ -130,21 +125,28 @@ func TestZoteroClientFetchCollections(t *testing.T) {
 		client := &ZoteroClient{BaseURL: server.URL, UserID: "TESTID", Client: &http.Client{}}
 
 		want := []Collection{
-			{Key: "3UL5E9NK", Meta: struct {
-				NumItems       int
-				NumCollections int
-			}{1, 0}, Data: struct {
-				Name    string
-				Version int
-			}{"CollectionTest", 3}},
-
-			{Key: "SQWT7EXE", Meta: struct {
-				NumItems       int
-				NumCollections int
-			}{3, 0}, Data: struct {
-				Name    string
-				Version int
-			}{"CollectionTest2", 10}},
+			{
+				Key: "3UL5E9NK",
+				Meta: Meta{
+					NumItems:       1,
+					NumCollections: 0,
+				},
+				Data: Data{
+					Name:    "CollectionTest",
+					Version: 3,
+				},
+			},
+			{
+				Key: "SQWT7EXE",
+				Meta: Meta{
+					NumItems:       3,
+					NumCollections: 0,
+				},
+				Data: Data{
+					Name:    "CollectionTest2",
+					Version: 10,
+				},
+			},
 		}
 
 		ctx := context.Background()
@@ -154,6 +156,26 @@ func TestZoteroClientFetchCollections(t *testing.T) {
 		}
 
 		assertResponse(t, got, want)
+	})
+}
+
+func TestZoteroClient_Cancelled(t *testing.T) {
+	t.Run("cancel request due to timeout", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(30 * time.Millisecond)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, "[]")
+		}))
+		defer server.Close()
+
+		client := &ZoteroClient{BaseURL: server.URL, UserID: "TESTID", Client: &http.Client{}}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+		defer cancel()
+		_, err := client.FetchCollections(ctx)
+		if err == nil {
+			t.Errorf("expected an error due to context timeout but didn't get one")
+		}
 	})
 }
 
