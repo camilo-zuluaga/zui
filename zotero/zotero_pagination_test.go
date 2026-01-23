@@ -49,10 +49,7 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 
 		limitStr := r.URL.Query().Get("limit")
 		limit, _ := strconv.Atoi(limitStr)
-		end := limit + start
-		if end > totalItems {
-			end = totalItems
-		}
+		end := min(limit + start, totalItems)
 
 		var items []ZoteroItem
 		for i := start; i < end; i++ {
