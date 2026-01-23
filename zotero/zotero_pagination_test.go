@@ -37,7 +37,6 @@ func TestFollowURLPagination(t *testing.T) {
 			if len(got) != want {
 				t.Errorf("expected %d elements, got %d", want, len(got))
 			}
-
 		})
 	}
 }
