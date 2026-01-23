@@ -12,10 +12,10 @@ import (
 
 func TestFollowURLPagination(t *testing.T) {
 	t.Run("test pagination", func(t *testing.T) {
-		server := createPaginationMockServer(50)
+		server := createPaginationMockServer(80)
 		client := NewZoteroClient(server.URL, "TEST", "12345")
 
-		want := 50
+		want := 80
 		ctx := context.Background()
 		got, _ := client.FetchItemsByCollection(ctx, "AAAA")
 
@@ -26,6 +26,7 @@ func TestFollowURLPagination(t *testing.T) {
 }
 
 func createPaginationMockServer(totalItems int) *httptest.Server {
+	server := httptest.NewServer(nil)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startStr := r.URL.Query().Get("start")
 		start, _ := strconv.Atoi(startStr)
@@ -33,6 +34,9 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 		limitStr := r.URL.Query().Get("limit")
 		limit, _ := strconv.Atoi(limitStr)
 		end := limit + start
+		if end > totalItems {
+			end = totalItems
+		}
 
 		var items []ZoteroItem
 		for i := start; i < end; i++ {
@@ -52,10 +56,10 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 
 		var nextURL string
 		if end < totalItems {
-			nextURL = fmt.Sprintf("%s?limit=%d&start=%d", r.URL.Path, limit, end)
+			nextURL = fmt.Sprintf("%s%s?limit=%d&start=%d", server.URL, r.URL.Path, limit, end)
 			w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="next"`, nextURL))
 		} else {
-			nextURL = fmt.Sprintf("%s?limit=%d", r.URL.Path, limit)
+			nextURL = fmt.Sprintf("%s%s?limit=%d", server.URL, r.URL.Path, limit)
 			w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="first"`, nextURL))
 		}
 
@@ -63,5 +67,6 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 		json.NewEncoder(w).Encode(items)
 	})
 
-	return httptest.NewServer(handler)
+	server.Config.Handler = handler
+	return server
 }
