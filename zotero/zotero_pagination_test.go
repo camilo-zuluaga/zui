@@ -11,18 +11,35 @@ import (
 )
 
 func TestFollowURLPagination(t *testing.T) {
-	t.Run("test pagination", func(t *testing.T) {
-		server := createPaginationMockServer(80)
-		client := NewZoteroClient(server.URL, "TEST", "12345")
+	tests := []struct {
+		testDescription string
+		totalItems      int
+	}{
+		{testDescription: "test pagination with 100 items", totalItems: 100},
+		{testDescription: "test pagination with 300 items", totalItems: 300},
+		{testDescription: "test pagination with 500 items", totalItems: 500},
+		{testDescription: "test pagination with 1000 items", totalItems: 1000},
+		{testDescription: "test pagination with 5000 items", totalItems: 5000},
+	}
+	for _, tt := range tests {
+		t.Run(tt.testDescription, func(t *testing.T) {
+			totalItems := tt.totalItems
+			server := createPaginationMockServer(totalItems)
+			client := NewZoteroClient(server.URL, "TEST", "12345")
 
-		want := 80
-		ctx := context.Background()
-		got, _ := client.FetchItemsByCollection(ctx, "AAAA")
+			want := totalItems
+			ctx := context.Background()
+			got, err := client.FetchItemsByCollection(ctx, "AAAA")
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
 
-		if len(got) != want {
-			t.Errorf("expected %d elements, got %d", want, len(got))
-		}
-	})
+			if len(got) != want {
+				t.Errorf("expected %d elements, got %d", want, len(got))
+			}
+
+		})
+	}
 }
 
 func createPaginationMockServer(totalItems int) *httptest.Server {
