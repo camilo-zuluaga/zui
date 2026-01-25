@@ -8,41 +8,43 @@ func GroupItemsByParent(zg []ZoteroGeneralItem) []ZoteroItem {
 	for i := range zg {
 		item := &zg[i]
 		if item.Data.ParentItem == "" {
-			parentGroup[item.Key] = ZoteroItem{
-				Key: zg[i].Key,
-				Data: ZoteroItemData{
-					ItemType:    zg[i].Data.ItemType,
-					Title:       zg[i].Data.Title,
-					Date:        zg[i].Data.Date,
-					Creators:    zg[i].Data.Creators,
-					Collections: zg[i].Data.Collections,
-				},
-			}
+			parentGroup[item.Key] = buildParent(item)
 		} else if item.Data.ItemType == "attachment" {
-			attachGroup[item.Data.ParentItem] = ZoteroAttachment{
-				Key:      zg[i].Data.Title,
-				Title:    zg[i].Data.Title,
-				Filename: zg[i].Data.Filename,
-				URL:      zg[i].Data.URL,
-			}
+			attachGroup[item.Data.ParentItem] = buildAttachment(item)
 		}
 	}
 
-	allItems := make([]ZoteroItem, 0, len(parentGroup))
-	for key, val := range parentGroup {
-		allItems = append(allItems,
-			ZoteroItem{
-				Key: key,
-				Data: ZoteroItemData{
-					ItemType:    val.Data.ItemType,
-					Title:       val.Data.Title,
-					Date:        val.Data.Date,
-					Creators:    val.Data.Creators,
-					Attachment:  attachGroup[key],
-					Collections: val.Data.Collections,
-				},
-			},
-		)
+	return mergeParentsWithAttachments(parentGroup, attachGroup)
+}
+
+func buildParent(z *ZoteroGeneralItem) ZoteroItem {
+	return ZoteroItem{
+		Key: z.Key,
+		Data: ZoteroItemData{
+			ItemType:    z.Data.ItemType,
+			Title:       z.Data.Title,
+			Date:        z.Data.Date,
+			Creators:    z.Data.Creators,
+			Collections: z.Data.Collections,
+		},
+	}
+}
+
+func buildAttachment(z *ZoteroGeneralItem) ZoteroAttachment {
+	return ZoteroAttachment{
+		Key:      z.Key,
+		Title:    z.Data.Title,
+		Filename: z.Data.Filename,
+		URL:      z.Data.URL,
+	}
+}
+
+func mergeParentsWithAttachments(parents map[string]ZoteroItem, attachments map[string]ZoteroAttachment) []ZoteroItem {
+	allItems := make([]ZoteroItem, 0, len(parents))
+
+	for key, parent := range parents {
+		parent.Data.Attachment = attachments[key]
+		allItems = append(allItems, parent)
 	}
 
 	return allItems
