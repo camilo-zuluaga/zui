@@ -13,7 +13,11 @@ func (z *ZoteroClient) FetchItemsByCollection(ctx context.Context, collectionKey
 		Limit:         50,
 		Start:         0,
 	})
-	return fetch[ZoteroItem](z, ctx, url)
+	res, err := fetch[ZoteroGeneralItem](z, ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	return GroupItemsByParent(res), nil
 }
 
 func (z *ZoteroClient) FetchCollections(ctx context.Context) ([]Collection, error) {
