@@ -18,10 +18,10 @@ func newMockZoteroServer(gen int) *httptest.Server {
 
 func TestGroupItemsByParentWithMockServer(t *testing.T) {
 	want := 1000
-	server := newMockZoteroServer(1000)
+	server := newMockZoteroServer(want)
 	defer server.Close()
 
-	client := NewZoteroClient(server.URL, "", "")
+	client := NewZoteroClient(server.URL, "")
 
 	ctx := context.Background()
 	items, err := fetch[ZoteroGeneralItem](client, ctx, client.BaseURL)
@@ -52,7 +52,7 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 			server := newMockZoteroServer(bm.numParents)
 			defer server.Close()
 
-			client := NewZoteroClient(server.URL, "", "")
+			client := NewZoteroClient(server.URL, "")
 
 			ctx := context.Background()
 			items, err := fetch[ZoteroGeneralItem](client, ctx, client.BaseURL)
@@ -71,6 +71,7 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 }
 
 func generateDummyData(numParents, childrenPerParent int) []byte {
+	// Assume: numParents with 2 children and one note
 	exampleParent := `{
 		"key": "PARENT%d",
 		"data": {
@@ -96,20 +97,33 @@ func generateDummyData(numParents, childrenPerParent int) []byte {
 		}
 	}`
 
+	exampleNote := `{
+		"key": "NOTE%d",
+		"data": {
+			"parentItem": "PARENT%d",
+			"itemType": "note",
+			"note": "Comment: This is note %d",
+			"tags": [],
+			"relations": {}
+		}
+	}`
+
 	var jsonStr string
 	jsonStr = "["
 
 	for i := range numParents {
-		// Add children first
+		parent := fmt.Sprintf(exampleParent, i, i, i, i)
+		jsonStr += parent + ","
+
 		for j := range childrenPerParent {
 			childNum := i*childrenPerParent + j
 			child := fmt.Sprintf(exampleChild, childNum, i, childNum)
 			jsonStr += child + ","
 		}
 
-		// Add parent
-		parent := fmt.Sprintf(exampleParent, i, i, i, i)
-		jsonStr += parent
+		noteNum := i
+		note := fmt.Sprintf(exampleNote, noteNum, i, noteNum)
+		jsonStr += note
 
 		if i < numParents-1 {
 			jsonStr += ","
