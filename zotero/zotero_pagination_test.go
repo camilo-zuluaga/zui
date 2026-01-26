@@ -25,7 +25,7 @@ func TestFollowURLPagination(t *testing.T) {
 		t.Run(tt.testDescription, func(t *testing.T) {
 			totalItems := tt.totalItems
 			server := createPaginationMockServer(totalItems)
-			client := NewZoteroClient(server.URL, "TEST", "12345")
+			client := NewZoteroClient(server.URL, "TEST")
 
 			want := totalItems
 			ctx := context.Background()
@@ -49,22 +49,30 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 
 		limitStr := r.URL.Query().Get("limit")
 		limit, _ := strconv.Atoi(limitStr)
-		end := min(limit + start, totalItems)
+		end := min(limit+start, totalItems)
 
-		var items []ZoteroItem
+		var items []ZoteroGeneralItem
 		for i := start; i < end; i++ {
 			iStr := strconv.Itoa(i)
-			items = append(items, ZoteroItem{
+			items = append(items, ZoteroGeneralItem{
 				Key: iStr,
-				Data: ZoteroItemData{
+				Data: struct {
+					ItemType    string              `json:"itemType"`
+					ParentItem  string              `json:"parentItem,omitempty"`
+					Title       string              `json:"title"`
+					URL         string              `json:"url,omitempty"`
+					Filename    string              `json:"filename,omitempty"`
+					Date        string              `json:"date"`
+					Note        string              `json:"note"`
+					Creators    []ZoteroItemCreator `json:"creators,omitempty"`
+					Collections []string            `json:"collections,omitempty"`
+				}{
 					ItemType:    "book",
 					Title:       "Item " + iStr,
 					Date:        "2026",
-					NumPages:    iStr,
 					Creators:    []ZoteroItemCreator{},
 					Collections: []string{},
-				},
-			})
+				}})
 		}
 
 		var nextURL string

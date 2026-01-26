@@ -46,7 +46,6 @@ func TestZoteroClientFetchItems(t *testing.T) {
 						"itemType": "book",
 						"title": "Learning Go",
 						"date": "2021",
-						"numPages": "550",
 			            "creators": [
 							{
 								"creatorType": "author",
@@ -71,7 +70,6 @@ func TestZoteroClientFetchItems(t *testing.T) {
 					ItemType: "book",
 					Title:    "Learning Go",
 					Date:     "2021",
-					NumPages: "550",
 					Creators: []ZoteroItemCreator{
 						{CreatorType: "author", FirstName: "Jon", LastName: "Bodner"},
 					},
