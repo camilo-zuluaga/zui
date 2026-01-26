@@ -10,9 +10,9 @@ func GroupItemsByParent(zg []ZoteroGeneralItem) []ZoteroItem {
 		item := &zg[i]
 		if item.Data.ParentItem == "" {
 			parentGroup[item.Key] = buildParent(item)
-		} else if item.Data.ItemType == "attachment" {
+		} else if item.isAttachment() {
 			attachGroup[item.Data.ParentItem] = buildAttachment(item)
-		} else if item.Data.ItemType == "note" {
+		} else if item.isNote() {
 			notesGroup[item.Data.ParentItem] = buildNote(item)
 		}
 	}
