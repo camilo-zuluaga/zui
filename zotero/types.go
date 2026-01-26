@@ -10,6 +10,7 @@ type ZoteroGeneralItem struct {
 		URL         string              `json:"url,omitempty"`
 		Filename    string              `json:"filename,omitempty"`
 		Date        string              `json:"date"`
+		Note        string              `json:"note"`
 		Creators    []ZoteroItemCreator `json:"creators,omitempty"`
 		Collections []string            `json:"collections,omitempty"`
 	}
@@ -21,13 +22,14 @@ type ZoteroItem struct {
 }
 
 type ZoteroItemData struct {
-	ItemType    string              `json:"itemType"`
-	Title       string              `json:"title"`
-	Date        string              `json:"date"`
-	NumPages    string              `json:"numPages"`
-	Creators    []ZoteroItemCreator `json:"creators"`
+	ItemType    string
+	Title       string
+	Date        string
+	NumPages    string
+	Creators    []ZoteroItemCreator
 	Attachment  ZoteroAttachment
-	Collections []string `json:"collections"`
+	Note        ZoteroNote
+	Collections []string
 }
 
 type ZoteroItemCreator struct {
@@ -41,6 +43,11 @@ type ZoteroAttachment struct {
 	Title    string
 	Filename string
 	URL      string
+}
+
+type ZoteroNote struct {
+	Key  string
+	Note string
 }
 
 type Meta struct {
