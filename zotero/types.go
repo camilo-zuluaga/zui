@@ -16,6 +16,14 @@ type ZoteroGeneralItem struct {
 	}
 }
 
+func (z *ZoteroGeneralItem) isAttachment() bool {
+	return z.Data.ItemType == "attachment"
+}
+
+func (z *ZoteroGeneralItem) isNote() bool {
+	return z.Data.ItemType == "note"
+}
+
 type ZoteroItem struct {
 	Key  string         `json:"key"`
 	Data ZoteroItemData `json:"data"`
