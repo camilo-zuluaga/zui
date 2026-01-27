@@ -1,9 +1,9 @@
 package zotero
 
-// this probably could be further optimized !
+// todo: optimize 
 func GroupItemsByParent(zg []ZoteroGeneralItem) []ZoteroItem {
-	parentGroup := make(map[string]ZoteroItem)
-	attachGroup := make(map[string]ZoteroAttachment)
+	parentGroup := make(map[string]*ZoteroItem)
+	attachGroup := make(map[string][]ZoteroAttachment)
 	notesGroup := make(map[string]ZoteroNote)
 
 	for i := range zg {
@@ -11,7 +11,9 @@ func GroupItemsByParent(zg []ZoteroGeneralItem) []ZoteroItem {
 		if item.Data.ParentItem == "" {
 			parentGroup[item.Key] = buildParent(item)
 		} else if item.isAttachment() {
-			attachGroup[item.Data.ParentItem] = buildAttachment(item)
+			attachGroup[item.Data.ParentItem] = append(
+				attachGroup[item.Data.ParentItem],
+				buildAttachment(item))
 		} else if item.isNote() {
 			notesGroup[item.Data.ParentItem] = buildNote(item)
 		}
@@ -20,8 +22,8 @@ func GroupItemsByParent(zg []ZoteroGeneralItem) []ZoteroItem {
 	return mergeParentsWithAttachments(parentGroup, attachGroup, notesGroup)
 }
 
-func buildParent(z *ZoteroGeneralItem) ZoteroItem {
-	return ZoteroItem{
+func buildParent(z *ZoteroGeneralItem) *ZoteroItem {
+	return &ZoteroItem{
 		Key: z.Key,
 		Data: ZoteroItemData{
 			ItemType:    z.Data.ItemType,
@@ -49,14 +51,16 @@ func buildNote(z *ZoteroGeneralItem) ZoteroNote {
 	}
 }
 
-func mergeParentsWithAttachments(parents map[string]ZoteroItem, attachments map[string]ZoteroAttachment,
-	notes map[string]ZoteroNote) []ZoteroItem {
+func mergeParentsWithAttachments(parents map[string]*ZoteroItem,
+	attachments map[string][]ZoteroAttachment,
+	notes map[string]ZoteroNote,
+) []ZoteroItem {
 	allItems := make([]ZoteroItem, 0, len(parents))
 
 	for key, parent := range parents {
 		parent.Data.Note = notes[key]
 		parent.Data.Attachment = attachments[key]
-		allItems = append(allItems, parent)
+		allItems = append(allItems, *parent)
 	}
 
 	return allItems
