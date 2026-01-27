@@ -35,7 +35,7 @@ type ZoteroItemData struct {
 	Date        string
 	NumPages    string
 	Creators    []ZoteroItemCreator
-	Attachment  ZoteroAttachment
+	Attachment  []ZoteroAttachment
 	Note        ZoteroNote
 	Collections []string
 }
