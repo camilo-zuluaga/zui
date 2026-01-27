@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -108,28 +109,28 @@ func generateDummyData(numParents, childrenPerParent int) []byte {
 		}
 	}`
 
-	var jsonStr string
-	jsonStr = "["
+	var jsonStr strings.Builder
+	jsonStr.WriteString("[")
 
 	for i := range numParents {
 		parent := fmt.Sprintf(exampleParent, i, i, i, i)
-		jsonStr += parent + ","
+		jsonStr.WriteString(parent + ",")
 
 		for j := range childrenPerParent {
 			childNum := i*childrenPerParent + j
 			child := fmt.Sprintf(exampleChild, childNum, i, childNum)
-			jsonStr += child + ","
+			jsonStr.WriteString(child + ",")
 		}
 
 		noteNum := i
 		note := fmt.Sprintf(exampleNote, noteNum, i, noteNum)
-		jsonStr += note
+		jsonStr.WriteString(note)
 
 		if i < numParents-1 {
-			jsonStr += ","
+			jsonStr.WriteString(",")
 		}
 	}
 
-	jsonStr += "]"
-	return []byte(jsonStr)
+	jsonStr.WriteString("]")
+	return []byte(jsonStr.String())
 }
