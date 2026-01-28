@@ -1,7 +1,7 @@
 package zotero
 
 // todo: optimize 
-func GroupItemsByParent(zg []ZoteroGeneralItem) []ZoteroItem {
+func GroupItems(zg []ZoteroGeneralItem) []ZoteroItem {
 	parentGroup := make(map[string]*ZoteroItem)
 	attachGroup := make(map[string][]ZoteroAttachment)
 	notesGroup := make(map[string]ZoteroNote)

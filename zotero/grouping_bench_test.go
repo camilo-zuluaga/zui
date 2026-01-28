@@ -22,7 +22,7 @@ func TestGroupItemsByParentWithMockServer(t *testing.T) {
 	server := newMockZoteroServer(want)
 	defer server.Close()
 
-	client := NewZoteroClient(server.URL, "")
+	client := NewZoteroClient(server.URL, "", "")
 
 	ctx := context.Background()
 	items, err := fetch[ZoteroGeneralItem](client, ctx, client.BaseURL)
@@ -30,7 +30,7 @@ func TestGroupItemsByParentWithMockServer(t *testing.T) {
 		t.Errorf("couldnt fetch")
 	}
 
-	result := GroupItemsByParent(items)
+	result := GroupItems(items)
 
 	if len(result) != want {
 		t.Errorf("Expected %d parent items, got %d", want, len(result))
@@ -43,6 +43,7 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 		name       string
 		numParents int
 	}{
+		{"200 Items", 200},
 		{"1k Items", 1000},
 		{"5000k Items", 5000},
 		{"10000k Items", 10000},
@@ -53,7 +54,7 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 			server := newMockZoteroServer(bm.numParents)
 			defer server.Close()
 
-			client := NewZoteroClient(server.URL, "")
+			client := NewZoteroClient(server.URL, "", "")
 
 			ctx := context.Background()
 			items, err := fetch[ZoteroGeneralItem](client, ctx, client.BaseURL)
@@ -64,7 +65,7 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 			b.ReportAllocs()
 
 			for b.Loop() {
-				_ = GroupItemsByParent(items)
+				_ = GroupItems(items)
 			}
 
 		})
