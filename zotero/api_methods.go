@@ -30,8 +30,9 @@ func (z *ZoteroClient) FetchCollections(ctx context.Context) ([]Collection, erro
 func (z *ZoteroClient) SearchItem(ctx context.Context, query string) ([]ZoteroItem, error) {
 	url, _ := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{
 		Q:     query,
-		Start: 0,
+		QMode: "everything",
 		Limit: 50,
+		Start: 0,
 	})
 	res, err := fetch[ZoteroGeneralItem](z, ctx, url)
 	if err != nil {
