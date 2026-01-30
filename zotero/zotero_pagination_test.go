@@ -25,7 +25,7 @@ func TestFollowURLPagination(t *testing.T) {
 		t.Run(tt.testDescription, func(t *testing.T) {
 			totalItems := tt.totalItems
 			server := createPaginationMockServer(totalItems)
-			client := NewZoteroClient(server.URL, "TEST")
+			client := NewZoteroClient(server.URL, "USERID", "APIKEY")
 
 			want := totalItems
 			ctx := context.Background()

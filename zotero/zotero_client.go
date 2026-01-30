@@ -11,10 +11,11 @@ type ZoteroClient struct {
 	Client  *http.Client
 }
 
-func NewZoteroClient(baseURL, userID string) *ZoteroClient {
+func NewZoteroClient(baseURL, userID, apiKey string) *ZoteroClient {
 	return &ZoteroClient{
 		BaseURL: baseURL,
 		UserID:  userID,
+		ApiKey:  apiKey,
 		Client:  &http.Client{},
 	}
 }

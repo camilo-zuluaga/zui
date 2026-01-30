@@ -22,7 +22,7 @@ func TestGroupItemsByParentWithMockServer(t *testing.T) {
 	server := newMockZoteroServer(want)
 	defer server.Close()
 
-	client := NewZoteroClient(server.URL, "", "")
+	client := NewZoteroClient(server.URL, "USERID", "APIKEY")
 
 	ctx := context.Background()
 	items, err := fetch[ZoteroGeneralItem](client, ctx, client.BaseURL)
@@ -54,7 +54,7 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 			server := newMockZoteroServer(bm.numParents)
 			defer server.Close()
 
-			client := NewZoteroClient(server.URL, "", "")
+			client := NewZoteroClient(server.URL, "USERID", "APIKEY")
 
 			ctx := context.Background()
 			items, err := fetch[ZoteroGeneralItem](client, ctx, client.BaseURL)
@@ -67,7 +67,6 @@ func BenchmarkGroupItemsByParent(b *testing.B) {
 			for b.Loop() {
 				_ = GroupItems(items)
 			}
-
 		})
 	}
 }
