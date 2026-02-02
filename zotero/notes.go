@@ -10,10 +10,32 @@ import (
 )
 
 type Note struct {
+	Version    int    `json:"version,omitempty"`
 	ParentItem string `json:"parentItem"`
 	ItemType   string `json:"itemType"`
 	Note       string `json:"note"`
 }
+
+type ResponseNote struct {
+	Data struct {
+		Version    int    `json:"version"`
+		ParentItem string `json:"parentItem"`
+		ItemType   string `json:"itemType"`
+		Note       string `json:"note"`
+	} `json:"data"`
+}
+
+//
+// type NoteResponse struct {
+// 	Successful map[string]struct {
+// 		Data struct {
+// 			Key        string `json:"key"`
+// 			Version    int    `json:"version"`
+// 			ParentItem string `json:"parentItem"`
+// 			Note       string `json:"note"`
+// 		} `json:"data"`
+// 	} `json:"successful"`
+// }
 
 func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
 	url, err := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{})
@@ -50,5 +72,49 @@ func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
 	}
 	fmt.Println(string(body))
 
+	return nil
+}
+
+func (z *ZoteroClient) EditNote(itemKey, newContent string) error {
+	url := z.buildURL("items", itemKey)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", z.ApiKey))
+
+	res, err := z.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	var result ResponseNote
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	note := Note{
+		Version:    result.Data.Version,
+		ParentItem: result.Data.ParentItem,
+		ItemType:   result.Data.ItemType,
+		Note:       newContent,
+	}
+
+	marshalled, err := json.Marshal(note)
+	if err != nil {
+		return err
+	}
+
+	req, err = http.NewRequest(http.MethodPatch, url, bytes.NewReader(marshalled))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", z.ApiKey))
+
+	res, err = z.Client.Do(req)
+	if err != nil {
+		return err
+	}
 	return nil
 }
