@@ -67,9 +67,11 @@ func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("failed to edit note, status: %d", res.StatusCode)
+		responseBody, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("failed to create note, status %d: %s", res.StatusCode, string(responseBody))
 	}
 
 	return nil
@@ -104,9 +106,11 @@ func (z *ZoteroClient) EditNote(itemKey, newContent string) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("failed to edit note, status: %d", res.StatusCode)
+		responseBody, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("failed to edit note, status %d: %s", res.StatusCode, string(responseBody))
 	}
 	return nil
 }
