@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -25,17 +24,27 @@ type ResponseNote struct {
 	} `json:"data"`
 }
 
-//
-// type NoteResponse struct {
-// 	Successful map[string]struct {
-// 		Data struct {
-// 			Key        string `json:"key"`
-// 			Version    int    `json:"version"`
-// 			ParentItem string `json:"parentItem"`
-// 			Note       string `json:"note"`
-// 		} `json:"data"`
-// 	} `json:"successful"`
-// }
+func (z *ZoteroClient) makeRequest(httpMethod, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(httpMethod, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", z.ApiKey))
+
+	res, err := z.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed request: %w", err)
+	}
+	return res, nil
+}
+
+func marshalJSON(note Note) (io.Reader, error) {
+	marshalled, err := json.Marshal(note)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(marshalled), nil
+}
 
 func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
 	url, err := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{})
@@ -48,42 +57,27 @@ func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
 		ItemType:   "note",
 		Note:       content,
 	}
-	marshalled, err := json.Marshal([]Note{note})
+
+	body, err := marshalJSON(note)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
+	res, err := z.makeRequest(http.MethodPost, url, body)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", z.ApiKey))
 
-	res, err := z.Client.Do(req)
-	if err != nil {
-		return err
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("failed to edit note, status: %d", res.StatusCode)
 	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Printf("warning: failed to read response body: %v", err)
-		body = []byte{}
-	}
-	fmt.Println(string(body))
 
 	return nil
 }
 
 func (z *ZoteroClient) EditNote(itemKey, newContent string) error {
 	url := z.buildURL("items", itemKey)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", z.ApiKey))
-
-	res, err := z.Client.Do(req)
+	res, err := z.makeRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
@@ -106,15 +100,13 @@ func (z *ZoteroClient) EditNote(itemKey, newContent string) error {
 		return err
 	}
 
-	req, err = http.NewRequest(http.MethodPatch, url, bytes.NewReader(marshalled))
+	res, err = z.makeRequest(http.MethodPatch, url, bytes.NewReader(marshalled))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", z.ApiKey))
 
-	res, err = z.Client.Do(req)
-	if err != nil {
-		return err
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("failed to edit note, status: %d", res.StatusCode)
 	}
 	return nil
 }
