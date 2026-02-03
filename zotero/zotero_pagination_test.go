@@ -60,6 +60,8 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 					ItemType    string              `json:"itemType"`
 					ParentItem  string              `json:"parentItem,omitempty"`
 					Title       string              `json:"title"`
+					ShortTitle  string              `json:"shortTitle"`
+					DOI         string              `json:"DOI"`
 					URL         string              `json:"url,omitempty"`
 					Filename    string              `json:"filename,omitempty"`
 					Date        string              `json:"date"`

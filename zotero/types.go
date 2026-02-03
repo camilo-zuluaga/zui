@@ -7,6 +7,8 @@ type ZoteroGeneralItem struct {
 		ItemType    string              `json:"itemType"`
 		ParentItem  string              `json:"parentItem,omitempty"`
 		Title       string              `json:"title"`
+		ShortTitle  string              `json:"shortTitle"`
+		DOI         string              `json:"DOI"`
 		URL         string              `json:"url,omitempty"`
 		Filename    string              `json:"filename,omitempty"`
 		Date        string              `json:"date"`
@@ -30,8 +32,10 @@ type ZoteroItem struct {
 }
 
 type ZoteroItemData struct {
+	DOI         string
 	ItemType    string
 	Title       string
+	ShortTitle  string
 	Date        string
 	NumPages    string
 	Creators    []ZoteroItemCreator

@@ -1,6 +1,6 @@
 package zotero
 
-// todo: optimize 
+// todo: optimize
 func GroupItems(zg []ZoteroGeneralItem) []ZoteroItem {
 	parentGroup := make(map[string]*ZoteroItem)
 	attachGroup := make(map[string][]ZoteroAttachment)
@@ -26,8 +26,10 @@ func buildParent(z *ZoteroGeneralItem) *ZoteroItem {
 	return &ZoteroItem{
 		Key: z.Key,
 		Data: ZoteroItemData{
+			DOI:         z.Data.DOI,
 			ItemType:    z.Data.ItemType,
 			Title:       z.Data.Title,
+			ShortTitle:  z.Data.ShortTitle,
 			Date:        z.Data.Date,
 			Creators:    z.Data.Creators,
 			Collections: z.Data.Collections,
