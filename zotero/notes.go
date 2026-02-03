@@ -15,7 +15,7 @@ type Note struct {
 	Note       string `json:"note"`
 }
 
-type ResponseNote struct {
+type APIResponseNote struct {
 	Data struct {
 		Version    int    `json:"version"`
 		ParentItem string `json:"parentItem"`
@@ -85,7 +85,7 @@ func (z *ZoteroClient) EditNote(itemKey, newContent string) error {
 	}
 	defer res.Body.Close()
 
-	var result ResponseNote
+	var result APIResponseNote
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
