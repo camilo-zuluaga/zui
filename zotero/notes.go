@@ -39,7 +39,7 @@ func (z *ZoteroClient) makeRequest(httpMethod, url string, body io.Reader) (*htt
 }
 
 func marshalJSON(note Note) (io.Reader, error) {
-	marshalled, err := json.Marshal(note)
+	marshalled, err := json.Marshal([]Note{note})
 	if err != nil {
 		return nil, err
 	}
