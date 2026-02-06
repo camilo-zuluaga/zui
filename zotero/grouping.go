@@ -4,7 +4,7 @@ package zotero
 func GroupItems(zg []ZoteroGeneralItem) []ZoteroItem {
 	parentGroup := make(map[string]*ZoteroItem)
 	attachGroup := make(map[string][]ZoteroAttachment)
-	notesGroup := make(map[string]ZoteroNote)
+	notesGroup := make(map[string][]ZoteroNote)
 
 	for i := range zg {
 		item := &zg[i]
@@ -15,7 +15,9 @@ func GroupItems(zg []ZoteroGeneralItem) []ZoteroItem {
 				attachGroup[item.Data.ParentItem],
 				buildAttachment(item))
 		} else if item.isNote() {
-			notesGroup[item.Data.ParentItem] = buildNote(item)
+			notesGroup[item.Data.ParentItem] = append(
+				notesGroup[item.Data.ParentItem],
+				buildNote(item))
 		}
 	}
 
@@ -26,13 +28,16 @@ func buildParent(z *ZoteroGeneralItem) *ZoteroItem {
 	return &ZoteroItem{
 		Key: z.Key,
 		Data: ZoteroItemData{
-			DOI:         z.Data.DOI,
-			ItemType:    z.Data.ItemType,
-			Title:       z.Data.Title,
-			ShortTitle:  z.Data.ShortTitle,
-			Date:        z.Data.Date,
-			Creators:    z.Data.Creators,
-			Collections: z.Data.Collections,
+			DOI:            z.Data.DOI,
+			URL:            z.Data.URL,
+			ItemType:       z.Data.ItemType,
+			Title:          z.Data.Title,
+			ShortTitle:     z.Data.ShortTitle,
+			Date:           z.Data.Date,
+			CreatorSummary: z.Meta.CreatorSummary,
+			Creators:       z.Data.Creators,
+			Collections:    z.Data.Collections,
+			DateModified:   z.Data.DateModified,
 		},
 	}
 }
@@ -55,7 +60,7 @@ func buildNote(z *ZoteroGeneralItem) ZoteroNote {
 
 func mergeParentsWithAttachments(parents map[string]*ZoteroItem,
 	attachments map[string][]ZoteroAttachment,
-	notes map[string]ZoteroNote,
+	notes map[string][]ZoteroNote,
 ) []ZoteroItem {
 	allItems := make([]ZoteroItem, 0, len(parents))
 

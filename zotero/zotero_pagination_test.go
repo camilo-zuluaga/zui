@@ -57,17 +57,18 @@ func createPaginationMockServer(totalItems int) *httptest.Server {
 			items = append(items, ZoteroGeneralItem{
 				Key: iStr,
 				Data: struct {
-					ItemType    string              `json:"itemType"`
-					ParentItem  string              `json:"parentItem,omitempty"`
-					Title       string              `json:"title"`
-					ShortTitle  string              `json:"shortTitle"`
-					DOI         string              `json:"DOI"`
-					URL         string              `json:"url,omitempty"`
-					Filename    string              `json:"filename,omitempty"`
-					Date        string              `json:"date"`
-					Note        string              `json:"note"`
-					Creators    []ZoteroItemCreator `json:"creators,omitempty"`
-					Collections []string            `json:"collections,omitempty"`
+					ItemType     string              `json:"itemType"`
+					ParentItem   string              `json:"parentItem,omitempty"`
+					Title        string              `json:"title"`
+					ShortTitle   string              `json:"shortTitle"`
+					DOI          string              `json:"DOI"`
+					URL          string              `json:"url,omitempty"`
+					Filename     string              `json:"filename,omitempty"`
+					Date         string              `json:"date"`
+					Note         string              `json:"note"`
+					Creators     []ZoteroItemCreator `json:"creators,omitempty"`
+					Collections  []string            `json:"collections,omitempty"`
+					DateModified string              `json:"dateModified"`
 				}{
 					ItemType:    "book",
 					Title:       "Item " + iStr,

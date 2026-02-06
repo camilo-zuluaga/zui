@@ -3,18 +3,22 @@ package zotero
 // General Zotero item trying to deal with heterogeneous data
 type ZoteroGeneralItem struct {
 	Key  string `json:"key"`
+	Meta struct {
+		CreatorSummary string `json:"creatorSummary"`
+	}
 	Data struct {
-		ItemType    string              `json:"itemType"`
-		ParentItem  string              `json:"parentItem,omitempty"`
-		Title       string              `json:"title"`
-		ShortTitle  string              `json:"shortTitle"`
-		DOI         string              `json:"DOI"`
-		URL         string              `json:"url,omitempty"`
-		Filename    string              `json:"filename,omitempty"`
-		Date        string              `json:"date"`
-		Note        string              `json:"note"`
-		Creators    []ZoteroItemCreator `json:"creators,omitempty"`
-		Collections []string            `json:"collections,omitempty"`
+		ItemType     string              `json:"itemType"`
+		ParentItem   string              `json:"parentItem,omitempty"`
+		Title        string              `json:"title"`
+		ShortTitle   string              `json:"shortTitle"`
+		DOI          string              `json:"DOI"`
+		URL          string              `json:"url,omitempty"`
+		Filename     string              `json:"filename,omitempty"`
+		Date         string              `json:"date"`
+		Note         string              `json:"note"`
+		Creators     []ZoteroItemCreator `json:"creators,omitempty"`
+		Collections  []string            `json:"collections,omitempty"`
+		DateModified string              `json:"dateModified"`
 	}
 }
 
@@ -32,16 +36,19 @@ type ZoteroItem struct {
 }
 
 type ZoteroItemData struct {
-	DOI         string
-	ItemType    string
-	Title       string
-	ShortTitle  string
-	Date        string
-	NumPages    string
-	Creators    []ZoteroItemCreator
-	Attachment  []ZoteroAttachment
-	Note        ZoteroNote
-	Collections []string
+	DOI            string
+	URL            string
+	ItemType       string
+	Title          string
+	ShortTitle     string
+	Date           string
+	NumPages       string
+	CreatorSummary string
+	Creators       []ZoteroItemCreator
+	Attachment     []ZoteroAttachment
+	Note           []ZoteroNote
+	Collections    []string
+	DateModified   string
 }
 
 type ZoteroItemCreator struct {
