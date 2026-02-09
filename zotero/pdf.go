@@ -29,7 +29,7 @@ func NewSystemPDFOpener() *SystemPDFOpener {
 		SystemPath:    zoteroPath,
 		CommandOpener: detectPDFOpener(),
 		RunCmd: func(name string, path string) error {
-			return exec.Command(name, path).Run()
+			return exec.Command(name, path).Start()
 		},
 	}
 }
@@ -42,8 +42,9 @@ func (s *SystemPDFOpener) Open(collection, filename string) error {
 func detectPDFOpener() string {
 	os := runtime.GOOS
 
-	// TODO: implement windows one, although i dont know if this works in mac
 	switch os {
+	case "windows":
+		return `start ""`
 	case "linux":
 		return "xdg-open"
 	case "darwin":
