@@ -5,10 +5,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 )
+
+func simpleFetch(c *ZoteroClient, ctx context.Context, url string) (string, error) {
+	res, err := makeRequest(c, ctx, url)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	return string(body), nil
+}
 
 func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error) {
 	var allItems []T
