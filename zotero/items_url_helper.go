@@ -7,14 +7,18 @@ import (
 	"strconv"
 )
 
-// var baseURL = "https://api.zotero.org"
-
 type ItemsQuery struct {
 	CollectionKey string
+	ParentKey     string
 	Q             string
 	QMode         string
 	Start         int
 	Limit         int
+	Sort          string
+	Format        string
+	Style         string
+	Bib           bool
+	Children      bool
 }
 
 func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
@@ -27,6 +31,10 @@ func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	if opts.CollectionKey != "" {
 		p = fmt.Sprintf("/users/%s/collections/%s/items",
 			url.PathEscape(userID), url.PathEscape(opts.CollectionKey))
+	} else if opts.Children {
+		p = fmt.Sprintf("/users/%s/items/%s/children", url.PathEscape(userID), url.PathEscape(opts.ParentKey))
+	} else if opts.Bib {
+		p = fmt.Sprintf("/users/%s/items/%s", url.PathEscape(userID), url.PathEscape(opts.ParentKey))
 	} else {
 		p = fmt.Sprintf("/users/%s/items", url.PathEscape(userID))
 	}
@@ -44,6 +52,15 @@ func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	}
 	if opts.Limit > 0 {
 		q.Set("limit", strconv.Itoa(opts.Limit))
+	}
+	if opts.Sort != "" {
+		q.Set("sort", opts.Sort)
+	}
+	if opts.Format != "" {
+		q.Set("format", opts.Format)
+	}
+	if opts.Style != "" {
+		q.Set("style", opts.Style)
 	}
 
 	u.RawQuery = q.Encode()
