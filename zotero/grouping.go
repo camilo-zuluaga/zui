@@ -1,5 +1,21 @@
 package zotero
 
+func GroupChildren(zg []ZoteroGeneralItem) ([]ZoteroAttachment, []ZoteroNote) {
+	var attachments []ZoteroAttachment
+	var notes []ZoteroNote
+
+	for i := range zg {
+		item := &zg[i]
+		if item.isAttachment() {
+			attachments = append(attachments, buildAttachment(item))
+		} else if item.isNote() {
+			notes = append(notes, buildNote(item))
+		}
+	}
+
+	return attachments, notes
+}
+
 // todo: optimize
 func GroupItems(zg []ZoteroGeneralItem) []ZoteroItem {
 	parentGroup := make(map[string]*ZoteroItem)
