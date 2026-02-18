@@ -19,6 +19,7 @@ type ItemsQuery struct {
 	Style         string
 	Bib           bool
 	Children      bool
+	Version       bool
 }
 
 func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
@@ -61,6 +62,9 @@ func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	}
 	if opts.Style != "" {
 		q.Set("style", opts.Style)
+	}
+	if opts.Version {
+		q.Set("format", "versions")
 	}
 
 	u.RawQuery = q.Encode()
