@@ -33,6 +33,8 @@ func simpleFetch(c *ZoteroClient, ctx context.Context, url string) (string, erro
 	return string(body), nil
 }
 
+// This fetching is a bad experience, it will take long until all objects (max 200) are retrieved from the api
+// TODO: Find another way to efficiently fetch or stream batches
 func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error) {
 	var allItems []T
 	currentURL := url
