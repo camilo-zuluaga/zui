@@ -37,7 +37,6 @@ func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error)
 	var allItems []T
 	currentURL := url
 
-	fmt.Println(currentURL)
 	for currentURL != "" {
 		items, nextURL, err := fetchPage[T](c, ctx, currentURL)
 		if err != nil {
@@ -64,7 +63,6 @@ func fetchPage[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, st
 	}
 
 	nextURL := parseNextURL(&res.Header)
-	fmt.Println(nextURL)
 	return items, nextURL, nil
 }
 
@@ -99,15 +97,19 @@ func parseNextURL(h *http.Header) string {
 	if link == "" {
 		return ""
 	}
-	// i was wrong btw
 
-	// WRONG APPROACH
-	// the structure of the zotero response is the following:
-	// link: <https://api.zotero.org/users/19402717/collections/IXWDFSNI/items?limit=40&start=40>; rel="next", ...
-	// so I'm assuming the first < and first > will contain the url for the next set of items
-	if strings.Contains(link, `rel="next"`) {
-		firstAnchor, lastAnchor := strings.Index(link, "<"), strings.Index(link, ">")
-		return link[firstAnchor+1 : lastAnchor]
+	links := strings.Split(link, ", ")
+
+	m := make(map[string]string, len(links))
+	for _, l := range links {
+		sep := strings.Split(l, "; ") // format = <link>; rel="action"
+		m[sep[1]] = sep[0]
+	}
+
+	relNext := m[`rel="next"`]
+	if relNext != "" {
+		firstAnchor, lastAnchor := strings.Index(relNext, "<"), strings.Index(relNext, ">")
+		return relNext[firstAnchor+1 : lastAnchor]
 	}
 	return ""
 }
