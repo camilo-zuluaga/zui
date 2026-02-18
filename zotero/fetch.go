@@ -11,6 +11,17 @@ import (
 	"strings"
 )
 
+func rawFetch(c *ZoteroClient, ctx context.Context, url string) ([]byte, error) {
+	res, err := makeRequest(c, ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	return body, nil
+}
+
 func simpleFetch(c *ZoteroClient, ctx context.Context, url string) (string, error) {
 	res, err := makeRequest(c, ctx, url)
 	if err != nil {
@@ -26,6 +37,7 @@ func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error)
 	var allItems []T
 	currentURL := url
 
+	fmt.Println(currentURL)
 	for currentURL != "" {
 		items, nextURL, err := fetchPage[T](c, ctx, currentURL)
 		if err != nil {
@@ -52,6 +64,7 @@ func fetchPage[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, st
 	}
 
 	nextURL := parseNextURL(&res.Header)
+	fmt.Println(nextURL)
 	return items, nextURL, nil
 }
 
@@ -86,6 +99,9 @@ func parseNextURL(h *http.Header) string {
 	if link == "" {
 		return ""
 	}
+	// i was wrong btw
+
+	// WRONG APPROACH
 	// the structure of the zotero response is the following:
 	// link: <https://api.zotero.org/users/19402717/collections/IXWDFSNI/items?limit=40&start=40>; rel="next", ...
 	// so I'm assuming the first < and first > will contain the url for the next set of items
