@@ -1,5 +1,13 @@
 package zotero
 
+func MapTopItems(zg []ZoteroGeneralItem) []ZoteroItem {
+	items := make([]ZoteroItem, 0, len(zg))
+	for i := range zg {
+		items = append(items, *buildParent(&zg[i]))
+	}
+	return items
+}
+
 func GroupChildren(zg []ZoteroGeneralItem) ([]ZoteroAttachment, []ZoteroNote) {
 	var attachments []ZoteroAttachment
 	var notes []ZoteroNote
@@ -42,7 +50,8 @@ func GroupItems(zg []ZoteroGeneralItem) []ZoteroItem {
 
 func buildParent(z *ZoteroGeneralItem) *ZoteroItem {
 	return &ZoteroItem{
-		Key: z.Key,
+		Key:     z.Key,
+		Version: z.Version,
 		Data: ZoteroItemData{
 			DOI:            z.Data.DOI,
 			URL:            z.Data.URL,
