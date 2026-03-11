@@ -41,9 +41,8 @@ type Model struct {
 	height, width int
 	list          list.Model
 	detailVP      viewport.Model
-	focus         pane
-	fromSearch    bool
-	helpText      string
+	focus    pane
+	helpText string
 }
 
 func New() Model {
@@ -71,9 +70,7 @@ func New() Model {
 	}
 }
 
-func (m *Model) SetZoteroItems(zItems []zotero.ZoteroItem, fromSearch bool) {
-	m.fromSearch = fromSearch
-
+func (m *Model) SetZoteroItems(zItems []zotero.ZoteroItem) {
 	items := make([]list.Item, 0, len(zItems))
 	for _, z := range zItems {
 		var title, desc, creators string
@@ -96,15 +93,38 @@ func (m *Model) SetZoteroItems(zItems []zotero.ZoteroItem, fromSearch bool) {
 	m.refreshDetails()
 }
 
+func (m *Model) AppendZoteroItems(zItems []zotero.ZoteroItem) {
+	existing := m.list.Items()
+	for _, z := range zItems {
+		var title, desc, creators string
+
+		title = z.Data.Title
+		creators = z.Data.CreatorSummary
+		desc = fmt.Sprintf("%s\n%s • [DOI] %s", creators, z.Data.Date, z.Data.DOI)
+		if z.Data.ShortTitle != "" {
+			title = z.Data.ShortTitle
+		}
+
+		c := item{
+			title:      title,
+			desc:       desc,
+			ZoteroItem: z,
+		}
+		existing = append(existing, c)
+	}
+	m.list.SetItems(existing)
+	m.refreshDetails()
+}
+
+func (m *Model) ClearItems() {
+	m.list.SetItems([]list.Item{})
+}
+
 func (m *Model) HelpText(msgType HelpMsgType) tea.Cmd {
 	var helpText string
 	switch msgType {
 	case ModeNormal:
-		helpText = "[tab] Switch pane • [n] Create/Edit note • [r] Read PDF • [b] Bibliography"
-		if m.fromSearch {
-			helpText += " • [enter] load data"
-		}
-		helpText += " • [q] quit"
+		helpText = "[tab] Switch pane • [enter] Load details • [n] Create/Edit note • [r] Read PDF • [b] Bibliography • [q] quit"
 
 	case ModeClipboard:
 		m.helpText = helpStyle.Render("Copied to clipboard!")
