@@ -121,6 +121,9 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.currentView = NotePickerView
 						return m, nil
 					}
+					if editor := m.externalEditor(); editor != "" {
+						return m, cmds.OpenExternalEditorCmd(editor, sel.Key, "", "", true)
+					}
 					m.noteEditor = noteeditor.InitialModel(sel.Key, "", "", true)
 					m.noteEditor.SetSize(m.width, m.height)
 					m.currentView = NoteEditorView
@@ -163,6 +166,9 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case notepicker.NoteSelectedMsg:
+		if editor := m.externalEditor(); editor != "" {
+			return m, cmds.OpenExternalEditorCmd(editor, msg.ParentKey, msg.ItemKey, msg.Content, msg.New)
+		}
 		m.noteEditor = noteeditor.InitialModel(msg.ParentKey, msg.ItemKey, msg.Content, msg.New)
 		m.noteEditor.SetSize(m.width, m.height)
 		m.currentView = NoteEditorView
@@ -178,6 +184,22 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmds.EditNoteCmd(m.zotero, msg.Key, msg.Content)
 		}
 		return m, cmds.SaveNoteCmd(m.zotero, msg.ParentKey, msg.Content)
+
+	case cmds.ExternalEditorFinishedMsg:
+		m.currentView = ItemsView
+		if msg.Err != nil || msg.Content == "" {
+			return m, nil
+		}
+		if !msg.New {
+			return m, cmds.EditNoteCmd(m.zotero, msg.Key, msg.Content)
+		}
+		return m, cmds.SaveNoteCmd(m.zotero, msg.ParentKey, msg.Content)
+
+	case cmds.NoteSaved:
+		m.currentView = ItemsView
+		if !msg.Successful {
+			return m, nil
+		}
 
 	case cmds.CollectionLoadedMsg:
 		m.loading = false
@@ -311,4 +333,11 @@ func (m rootModel) View() string {
 	)
 
 	return content
+}
+
+func (m rootModel) externalEditor() string {
+	if m.zotero.Config != nil {
+		return m.zotero.Config.NoteEditor
+	}
+	return ""
 }

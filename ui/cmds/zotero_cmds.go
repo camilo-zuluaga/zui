@@ -2,6 +2,8 @@ package cmds
 
 import (
 	"context"
+	"os"
+	"os/exec"
 
 	"github.com/camilo-zuluaga/zotero-tui/zotero"
 	tea "github.com/charmbracelet/bubbletea"
@@ -155,4 +157,47 @@ func GetBibCmd(z *zotero.ZoteroClient, itemKey, format, style string) tea.Cmd {
 			Err: err,
 		}
 	}
+}
+
+type ExternalEditorFinishedMsg struct {
+	ParentKey string
+	Key       string
+	Content   string
+	New       bool
+	Err       error
+}
+
+func OpenExternalEditorCmd(editor, parentKey, itemKey, content string, isNew bool) tea.Cmd {
+	tmpFile, err := os.CreateTemp("", "zui-note-*.txt")
+	if err != nil {
+		return func() tea.Msg {
+			return ExternalEditorFinishedMsg{Err: err}
+		}
+	}
+
+	if content != "" {
+		tmpFile.WriteString(content)
+	}
+	tmpFile.Close()
+
+	c := exec.Command(editor, tmpFile.Name())
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		defer os.Remove(tmpFile.Name())
+
+		if err != nil {
+			return ExternalEditorFinishedMsg{Err: err}
+		}
+
+		data, readErr := os.ReadFile(tmpFile.Name())
+		if readErr != nil {
+			return ExternalEditorFinishedMsg{Err: readErr}
+		}
+
+		return ExternalEditorFinishedMsg{
+			ParentKey: parentKey,
+			Key:       itemKey,
+			Content:   string(data),
+			New:       isNew,
+		}
+	})
 }
