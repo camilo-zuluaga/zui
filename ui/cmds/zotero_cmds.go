@@ -25,12 +25,52 @@ type ZoteroItemsLoadedMsg struct {
 	Err   error
 }
 
-func FetchCollectionItemsCmd(z *zotero.ZoteroClient, collectionKey string) tea.Cmd {
+type ZoteroItemsPageMsg struct {
+	Items []zotero.ZoteroItem
+	Done  bool
+	Err   error
+}
+
+func StreamCollectionItemsCmd(z *zotero.ZoteroClient, collectionKey string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		items, err := z.FetchItemsByCollection(ctx, collectionKey)
-		return ZoteroItemsLoadedMsg{Items: items, Err: err}
+		ch, errCh := z.StreamItemsByCollection(ctx, collectionKey)
+		return StreamStartedMsg{Ch: ch, ErrCh: errCh}
 	}
+}
+
+func StreamSearchCmd(z *zotero.ZoteroClient, query string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		ch, errCh := z.StreamSearch(ctx, query)
+		return StreamStartedMsg{Ch: ch, ErrCh: errCh}
+	}
+}
+
+type StreamStartedMsg struct {
+	Ch    <-chan []zotero.ZoteroGeneralItem
+	ErrCh chan error
+}
+
+func waitForPageCmd(ch <-chan []zotero.ZoteroGeneralItem, errCh chan error) tea.Cmd {
+	return func() tea.Msg {
+		items, ok := <-ch
+		if !ok {
+			var err error
+			select {
+			case err = <-errCh:
+			default:
+			}
+			return ZoteroItemsPageMsg{Done: true, Err: err}
+		}
+		return ZoteroItemsPageMsg{
+			Items: zotero.MapTopItems(items),
+		}
+	}
+}
+
+func WaitForPageCmd(ch <-chan []zotero.ZoteroGeneralItem, errCh chan error) tea.Cmd {
+	return waitForPageCmd(ch, errCh)
 }
 
 type NoteSaved struct {
