@@ -42,10 +42,12 @@ type rootModel struct {
 	attachReader attachpicker.Model
 
 	currentView currentView
-	fromSearch  bool
 
-	loading bool
-	spinner spinner.Model
+	loading   bool
+	streaming bool
+	streamCh  <-chan []zotero.ZoteroGeneralItem
+	streamErr chan error
+	spinner   spinner.Model
 }
 
 func NewRootModel(z *zotero.ZoteroClient) rootModel {
@@ -92,13 +94,14 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if sel := m.collections.SelectedCollection(); sel != nil {
 					m.loading = true
 					m.currentView = ItemsView
+					m.zoteroItems.ClearItems()
 					m.zoteroItems.HelpText(items.ModeNormal)
 					return m, tea.Batch(m.spinner.Tick,
-						cmds.FetchCollectionItemsCmd(m.zotero, sel.Key))
+						cmds.StreamCollectionItemsCmd(m.zotero, sel.Key))
 				}
 			}
 
-			if m.currentView == ItemsView && m.fromSearch {
+			if m.currentView == ItemsView {
 				if sel := m.zoteroItems.SelectedZoteroItem(); sel != nil {
 					if len(sel.Data.Attachment) == 0 && len(sel.Data.Note) == 0 {
 						return m, cmds.FetchItemChildrenCmd(m.zotero, sel.Key)
@@ -108,6 +111,9 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "n":
 			if m.currentView == ItemsView {
 				if sel := m.zoteroItems.SelectedZoteroItem(); sel != nil {
+					if len(sel.Data.Note) == 0 && len(sel.Data.Attachment) == 0 {
+						return m, cmds.FetchItemChildrenCmd(m.zotero, sel.Key)
+					}
 					m.notepicker = notepicker.New(sel.Key)
 					m.notepicker.SetSize(m.width, m.height)
 					if len(sel.Data.Note) != 0 {
@@ -123,6 +129,11 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "r":
 			if m.currentView == ItemsView {
+				if sel := m.zoteroItems.SelectedZoteroItem(); sel != nil {
+					if len(sel.Data.Attachment) == 0 {
+						return m, cmds.FetchItemChildrenCmd(m.zotero, sel.Key)
+					}
+				}
 				if sel := m.zoteroItems.SelectedZoteroItem(); sel != nil && len(sel.Data.Attachment) != 0 {
 					m.attachReader = attachpicker.New(sel.Data.Title)
 					m.attachReader.SetSize(m.width, m.height)
@@ -173,17 +184,41 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.collections.SetZoteroCollections(msg.Items)
 		return m, nil
 
+	case cmds.StreamStartedMsg:
+		m.streamCh = msg.Ch
+		m.streamErr = msg.ErrCh
+		m.streaming = true
+		return m, cmds.WaitForPageCmd(m.streamCh, m.streamErr)
+
 	case cmds.ZoteroItemsLoadedMsg:
 		m.loading = false
-		m.zoteroItems.SetZoteroItems(msg.Items, m.fromSearch)
+		m.zoteroItems.SetZoteroItems(msg.Items)
 		return m, m.zoteroItems.HelpText(items.ModeNormal)
+
+	case cmds.ZoteroItemsPageMsg:
+		if msg.Err != nil {
+			m.loading = false
+			m.streaming = false
+			return m, nil
+		}
+		if msg.Done {
+			m.loading = false
+			m.streaming = false
+			m.streamCh = nil
+			m.streamErr = nil
+			return m, m.zoteroItems.HelpText(items.ModeNormal)
+		}
+		m.loading = false
+		m.streaming = true
+		m.zoteroItems.AppendZoteroItems(msg.Items)
+		return m, cmds.WaitForPageCmd(m.streamCh, m.streamErr)
 
 	case search.SearchMsg:
 		m.loading = true
-		m.fromSearch = true
 		m.currentView = ItemsView
+		m.zoteroItems.ClearItems()
 		return m, tea.Batch(m.spinner.Tick,
-			cmds.FetchQuery(m.zotero, msg.Query))
+			cmds.StreamSearchCmd(m.zotero, msg.Query))
 
 	case cmds.ChildrenLoadedMsg:
 		if msg.Err != nil {
@@ -212,7 +247,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	if m.loading {
+	if m.loading || m.streaming {
 		m.spinner, cmd = m.spinner.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -246,7 +281,7 @@ func (m rootModel) View() string {
 
 	var body string
 
-	if m.loading {
+	if m.loading && !m.streaming {
 		body = lipgloss.NewStyle().
 			Height(m.height-3).
 			Width(m.width).
