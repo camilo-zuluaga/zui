@@ -11,9 +11,12 @@ func (z *ZoteroClient) FetchAllItems(ctx context.Context) ([]ZoteroItem, error) 
 	return fetch[ZoteroItem](z, ctx, url)
 }
 
-func (z *ZoteroClient) FetchItemsByCollection(ctx context.Context, collectionKey string) ([]ZoteroItem, error) {
+func (z *ZoteroClient) FetchItemsByCollection(ctx context.Context, collectionKey string, version int64, toSync bool) ([]ZoteroItem, error) {
 	url, _ := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{
 		CollectionKey: collectionKey,
+		ToSync:        toSync,
+		Version:       version,
+		Top:           !toSync,
 		Limit:         50,
 		Start:         0,
 	})
@@ -21,7 +24,37 @@ func (z *ZoteroClient) FetchItemsByCollection(ctx context.Context, collectionKey
 	if err != nil {
 		return nil, err
 	}
-	return GroupItems(res), nil
+	return MapTopItems(res), nil
+}
+
+func (z *ZoteroClient) StreamItemsByCollection(ctx context.Context, collectionKey string) (<-chan []ZoteroGeneralItem, chan error) {
+	url, _ := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{
+		CollectionKey: collectionKey,
+		Top:           true,
+		Limit:         50,
+		Start:         0,
+	})
+	ch := make(chan []ZoteroGeneralItem)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- fetchStream(z, ctx, url, ch)
+	}()
+	return ch, errCh
+}
+
+func (z *ZoteroClient) StreamSearch(ctx context.Context, query string) (<-chan []ZoteroGeneralItem, chan error) {
+	url, _ := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{
+		Q:     query,
+		Top:   true,
+		Limit: 50,
+		Start: 0,
+	})
+	ch := make(chan []ZoteroGeneralItem)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- fetchStream(z, ctx, url, ch)
+	}()
+	return ch, errCh
 }
 
 func (z *ZoteroClient) FetchCollections(ctx context.Context) ([]Collection, error) {
@@ -32,6 +65,7 @@ func (z *ZoteroClient) FetchCollections(ctx context.Context) ([]Collection, erro
 func (z *ZoteroClient) SearchItem(ctx context.Context, query string) ([]ZoteroItem, error) {
 	url, _ := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{
 		Q:     query,
+		Top:   true,
 		Limit: 50,
 		Start: 0,
 	})
@@ -39,7 +73,7 @@ func (z *ZoteroClient) SearchItem(ctx context.Context, query string) ([]ZoteroIt
 	if err != nil {
 		return nil, err
 	}
-	return GroupItems(res), nil
+	return MapTopItems(res), nil
 }
 
 func (z *ZoteroClient) FetchChildren(ctx context.Context, parentKey string) ([]ZoteroAttachment, []ZoteroNote, error) {
@@ -58,9 +92,8 @@ func (z *ZoteroClient) FetchChildren(ctx context.Context, parentKey string) ([]Z
 func (z *ZoteroClient) FetchItemsVersion(ctx context.Context, collectionKey string) (map[string]int, error) {
 	url, _ := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{
 		CollectionKey: collectionKey,
-		Version:       true,
 	})
-	res, err := rawFetch(z, ctx, url)
+	_, res, err := rawFetch(z, ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +102,18 @@ func (z *ZoteroClient) FetchItemsVersion(ctx context.Context, collectionKey stri
 		log.Fatal(err)
 	}
 	return m, nil
+}
+
+func (z *ZoteroClient) GetLastModifiedVersion(ctx context.Context, collectionKey string) (string, error) {
+	url := z.buildURL("collections")
+	header, _, err := rawFetch(z, ctx, url)
+	if err != nil {
+		return "", err
+	}
+	if v := header.Get("last-modified-version"); v != "" {
+		return v, err
+	}
+	return "", err
 }
 
 func (z *ZoteroClient) GetBib(ctx context.Context, itemKey, format, style string) (string, error) {
