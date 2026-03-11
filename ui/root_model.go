@@ -195,12 +195,6 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmds.SaveNoteCmd(m.zotero, msg.ParentKey, msg.Content)
 
-	case cmds.NoteSaved:
-		m.currentView = ItemsView
-		if !msg.Successful {
-			return m, nil
-		}
-
 	case cmds.CollectionLoadedMsg:
 		m.loading = false
 		m.collections.SetZoteroCollections(msg.Items)
