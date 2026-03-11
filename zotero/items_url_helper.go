@@ -19,7 +19,9 @@ type ItemsQuery struct {
 	Style         string
 	Bib           bool
 	Children      bool
-	Version       bool
+	Top           bool
+	Version       int64
+	ToSync        bool
 }
 
 func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
@@ -32,12 +34,18 @@ func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	if opts.CollectionKey != "" {
 		p = fmt.Sprintf("/users/%s/collections/%s/items",
 			url.PathEscape(userID), url.PathEscape(opts.CollectionKey))
+		if opts.Top {
+			p += "/top"
+		}
 	} else if opts.Children {
 		p = fmt.Sprintf("/users/%s/items/%s/children", url.PathEscape(userID), url.PathEscape(opts.ParentKey))
 	} else if opts.Bib {
 		p = fmt.Sprintf("/users/%s/items/%s", url.PathEscape(userID), url.PathEscape(opts.ParentKey))
 	} else {
 		p = fmt.Sprintf("/users/%s/items", url.PathEscape(userID))
+		if opts.Top {
+			p += "/top"
+		}
 	}
 	u.Path = path.Join(u.Path, p)
 
@@ -48,10 +56,10 @@ func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	if opts.QMode != "" {
 		q.Set("qmode", opts.QMode)
 	}
-	if opts.Start >= 0 {
+	if opts.Start >= 0 && !opts.ToSync {
 		q.Set("start", strconv.Itoa(opts.Start))
 	}
-	if opts.Limit > 0 {
+	if opts.Limit > 0 && !opts.ToSync {
 		q.Set("limit", strconv.Itoa(opts.Limit))
 	}
 	if opts.Sort != "" {
@@ -63,8 +71,9 @@ func buildItemsURL(baseURL, userID string, opts ItemsQuery) (string, error) {
 	if opts.Style != "" {
 		q.Set("style", opts.Style)
 	}
-	if opts.Version {
-		q.Set("format", "versions")
+	if opts.ToSync {
+		v := fmt.Sprintf("%d", opts.Version)
+		q.Set("since", v)
 	}
 
 	u.RawQuery = q.Encode()
