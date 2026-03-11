@@ -9,13 +9,16 @@ type ZoteroClient struct {
 	UserID  string
 	ApiKey  string
 	Client  *http.Client
+	Config  *BibConfig
 }
 
 func NewZoteroClient(baseURL, userID, apiKey string) *ZoteroClient {
+	cfg, _ := LoadConfig()
 	return &ZoteroClient{
 		BaseURL: baseURL,
 		UserID:  userID,
 		ApiKey:  apiKey,
 		Client:  &http.Client{},
+		Config:  cfg,
 	}
 }
