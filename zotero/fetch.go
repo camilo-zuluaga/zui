@@ -11,15 +11,15 @@ import (
 	"strings"
 )
 
-func rawFetch(c *ZoteroClient, ctx context.Context, url string) ([]byte, error) {
+func rawFetch(c *ZoteroClient, ctx context.Context, url string) (*http.Header, []byte, error) {
 	res, err := makeRequest(c, ctx, url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 
-	return body, nil
+	return &res.Header, body, nil
 }
 
 func simpleFetch(c *ZoteroClient, ctx context.Context, url string) (string, error) {
@@ -33,8 +33,6 @@ func simpleFetch(c *ZoteroClient, ctx context.Context, url string) (string, erro
 	return string(body), nil
 }
 
-// This fetching is a bad experience, it will take long until all objects (max 200) are retrieved from the api
-// TODO: Find another way to efficiently fetch or stream batches
 func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error) {
 	var allItems []T
 	currentURL := url
@@ -50,6 +48,28 @@ func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error)
 	}
 
 	return allItems, nil
+}
+
+func fetchStream[T any](c *ZoteroClient, ctx context.Context, url string, ch chan<- []T) error {
+	defer close(ch)
+	currentURL := url
+
+	for currentURL != "" {
+		items, nextURL, err := fetchPage[T](c, ctx, currentURL)
+		if err != nil {
+			return err
+		}
+
+		select {
+		case ch <- items:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
+		currentURL = nextURL
+	}
+
+	return nil
 }
 
 func fetchPage[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, string, error) {
