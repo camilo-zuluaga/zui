@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/camilo-zuluaga/zotero-tui/cache"
+	"github.com/camilo-zuluaga/zotero-tui/sync"
 	"github.com/camilo-zuluaga/zotero-tui/zotero"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -14,11 +16,20 @@ type CollectionLoadedMsg struct {
 	Err   error
 }
 
-func FetchCollectionsCmd(z *zotero.ZoteroClient) tea.Cmd {
+func LoadCollectionsCmd(c *cache.Cache, ss *sync.SyncService) tea.Cmd {
 	return func() tea.Msg {
+		cached, _ := c.GetCollections()
+		if len(cached) > 0 {
+			go func() {
+				ctx := context.Background()
+				ss.SyncCollections(ctx)
+			}()
+			return CollectionLoadedMsg{Items: cached}
+		}
+
 		ctx := context.Background()
-		items, err := z.FetchCollections(ctx)
-		return CollectionLoadedMsg{Items: items, Err: err}
+		cols, err := ss.SyncCollections(ctx)
+		return CollectionLoadedMsg{Items: cols, Err: err}
 	}
 }
 
@@ -27,34 +38,33 @@ type ZoteroItemsLoadedMsg struct {
 	Err   error
 }
 
+func LoadCollectionItemsCmd(c *cache.Cache, z *zotero.ZoteroClient, collectionKey string) tea.Cmd {
+	return func() tea.Msg {
+		cached, _ := c.GetItemsByCollection(collectionKey)
+		if len(cached) > 0 {
+			return ZoteroItemsLoadedMsg{Items: cached}
+		}
+
+		// Cold cache: stream from API
+		ctx := context.Background()
+		ch, errCh := z.StreamItemsByCollection(ctx, collectionKey)
+		return StreamStartedMsg{Ch: ch, ErrCh: errCh, Cache: c}
+	}
+}
+
 type ZoteroItemsPageMsg struct {
 	Items []zotero.ZoteroItem
 	Done  bool
 	Err   error
 }
 
-func StreamCollectionItemsCmd(z *zotero.ZoteroClient, collectionKey string) tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		ch, errCh := z.StreamItemsByCollection(ctx, collectionKey)
-		return StreamStartedMsg{Ch: ch, ErrCh: errCh}
-	}
-}
-
-func StreamSearchCmd(z *zotero.ZoteroClient, query string) tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		ch, errCh := z.StreamSearch(ctx, query)
-		return StreamStartedMsg{Ch: ch, ErrCh: errCh}
-	}
-}
-
 type StreamStartedMsg struct {
 	Ch    <-chan []zotero.ZoteroGeneralItem
 	ErrCh chan error
+	Cache *cache.Cache
 }
 
-func waitForPageCmd(ch <-chan []zotero.ZoteroGeneralItem, errCh chan error) tea.Cmd {
+func WaitForPageCmd(ch <-chan []zotero.ZoteroGeneralItem, errCh chan error, c *cache.Cache) tea.Cmd {
 	return func() tea.Msg {
 		items, ok := <-ch
 		if !ok {
@@ -65,62 +75,20 @@ func waitForPageCmd(ch <-chan []zotero.ZoteroGeneralItem, errCh chan error) tea.
 			}
 			return ZoteroItemsPageMsg{Done: true, Err: err}
 		}
-		return ZoteroItemsPageMsg{
-			Items: zotero.MapTopItems(items),
+		mapped := zotero.MapTopItems(items)
+		if c != nil {
+			c.UpsertItems(mapped)
 		}
+		return ZoteroItemsPageMsg{Items: mapped}
 	}
 }
 
-func WaitForPageCmd(ch <-chan []zotero.ZoteroGeneralItem, errCh chan error) tea.Cmd {
-	return waitForPageCmd(ch, errCh)
-}
-
-type NoteSaved struct {
-	Successful bool
-}
-
-func SaveNoteCmd(z *zotero.ZoteroClient, parentKey, content string) tea.Cmd {
-	return func() tea.Msg {
-		err := z.CreateNote(parentKey, content)
-		if err != nil {
-			return NoteSaved{
-				Successful: false,
-			}
-		}
-		return NoteSaved{
-			Successful: true,
-		}
-	}
-}
-
-func EditNoteCmd(z *zotero.ZoteroClient, itemKey, newContent string) tea.Cmd {
-	return func() tea.Msg {
-		err := z.EditNote(itemKey, newContent)
-		if err != nil {
-			return NoteSaved{
-				Successful: false,
-			}
-		}
-		return NoteSaved{
-			Successful: true,
-		}
-	}
-}
-
-func FetchQuery(z *zotero.ZoteroClient, query string) tea.Cmd {
+func StreamSearchCmd(z *zotero.ZoteroClient, query string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		items, err := z.SearchItem(ctx, query)
-		return ZoteroItemsLoadedMsg{Items: items, Err: err}
+		ch, errCh := z.StreamSearch(ctx, query)
+		return StreamStartedMsg{Ch: ch, ErrCh: errCh}
 	}
-}
-
-func OpenPDF(o *zotero.SystemPDFOpener, key, filename string) error {
-	err := o.Open(key, filename)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 type ChildrenLoadedMsg struct {
@@ -143,6 +111,30 @@ func FetchItemChildrenCmd(z *zotero.ZoteroClient, parentKey string) tea.Cmd {
 	}
 }
 
+type NoteSaved struct {
+	Successful bool
+}
+
+func SaveNoteCmd(z *zotero.ZoteroClient, parentKey, content string) tea.Cmd {
+	return func() tea.Msg {
+		err := z.CreateNote(parentKey, content)
+		if err != nil {
+			return NoteSaved{Successful: false}
+		}
+		return NoteSaved{Successful: true}
+	}
+}
+
+func EditNoteCmd(z *zotero.ZoteroClient, itemKey, newContent string) tea.Cmd {
+	return func() tea.Msg {
+		err := z.EditNote(itemKey, newContent)
+		if err != nil {
+			return NoteSaved{Successful: false}
+		}
+		return NoteSaved{Successful: true}
+	}
+}
+
 type BibMsg struct {
 	Bib string
 	Err error
@@ -152,11 +144,12 @@ func GetBibCmd(z *zotero.ZoteroClient, itemKey, format, style string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		bib, err := z.GetBib(ctx, itemKey, format, style)
-		return BibMsg{
-			Bib: bib,
-			Err: err,
-		}
+		return BibMsg{Bib: bib, Err: err}
 	}
+}
+
+func OpenPDF(o *zotero.SystemPDFOpener, key, filename string) error {
+	return o.Open(key, filename)
 }
 
 type ExternalEditorFinishedMsg struct {

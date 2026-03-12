@@ -3,14 +3,28 @@ package cache
 import (
 	"database/sql"
 	"log"
+	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
 
 func Init() (*Cache, error) {
-	db, err := sql.Open("sqlite", "test.sqlite")
+	dbPath, err := dbPath()
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		return nil, err
+	}
+	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+		return nil, err
 	}
 
 	if err := createTables(db); err != nil {
@@ -18,94 +32,56 @@ func Init() (*Cache, error) {
 	}
 
 	return &Cache{db: db}, nil
-	// rows, err := db.Query("SELECT * FROM items")
-	//
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
-	// defer rows.Close()
-	//
-	// for rows.Next() {
-	//
-	// 	var id int
-	// 	var zotero_key string
-	// 	var collection_key string
-	// 	var item_type string
-	// 	var title string
-	// 	var short_title string
-	// 	var date string
-	// 	var creator_summary string
-	// 	var DOI string
-	// 	var URL string
-	// 	var version int
-	//
-	// 	err = rows.Scan(&id, &zotero_key, &collection_key, &item_type,
-	// 		&title, &short_title, &date, &creator_summary, &DOI, &URL, &version)
-	//
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	//
-	// 	fmt.Printf("%d %s %s %s %s %s %s %s %s %s %d\n\n", id, zotero_key, collection_key, item_type, title,
-	// 		short_title, date, creator_summary, DOI, URL, version)
-	// }
+}
+
+func dbPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(homeDir, ".config", "zui", "db")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "cache.db"), nil
 }
 
 func createTables(db *sql.DB) error {
 	schema := `
-	CREATE TABLE IF NOT EXISTS items
-	(
-		id              INTEGER PRIMARY KEY AUTOINCREMENT,
-		zotero_key      TEXT,
-		collection_key  TEXT,
-		item_type       TEXT,
-		title           TEXT,
-		short_title     TEXT,
-		date            TEXT,
-		creator_summary TEXT,
-		DOI             TEXT,
-		URL             TEXT,
-		version         INTEGER
+	CREATE TABLE IF NOT EXISTS collections (
+		zotero_key TEXT PRIMARY KEY,
+		name       TEXT NOT NULL DEFAULT '',
+		num_items  INTEGER NOT NULL DEFAULT 0,
+		version    INTEGER NOT NULL DEFAULT 0
 	);
 
-	CREATE TABLE IF NOT EXISTS collections
-	(
-		id         INTEGER PRIMARY KEY AUTOINCREMENT,
-		zotero_key TEXT,
-		name       TEXT,
-		num_items  INTEGER,
-		version    INTEGER
+	CREATE TABLE IF NOT EXISTS items (
+		zotero_key     TEXT PRIMARY KEY,
+		version        INTEGER NOT NULL DEFAULT 0,
+		item_type      TEXT NOT NULL DEFAULT '',
+		title          TEXT NOT NULL DEFAULT '',
+		short_title    TEXT NOT NULL DEFAULT '',
+		date           TEXT NOT NULL DEFAULT '',
+		creator_summary TEXT NOT NULL DEFAULT '',
+		doi            TEXT NOT NULL DEFAULT '',
+		url            TEXT NOT NULL DEFAULT '',
+		date_modified  TEXT NOT NULL DEFAULT ''
 	);
 
-	CREATE TABLE IF NOT EXISTS attachments
-	(
-		id         INTEGER PRIMARY KEY AUTOINCREMENT,
-		item_id    INTEGER,
-		zotero_key TEXT,
-		title      TEXT,
-		filename   TEXT,
-		URL        TEXT,
-		FOREIGN KEY (item_id) REFERENCES items (id)
+	CREATE TABLE IF NOT EXISTS item_collections (
+		item_key       TEXT NOT NULL,
+		collection_key TEXT NOT NULL,
+		PRIMARY KEY (item_key, collection_key),
+		FOREIGN KEY (item_key) REFERENCES items(zotero_key) ON DELETE CASCADE
 	);
 
-	CREATE TABLE IF NOT EXISTS notes
-	(
-		id         INTEGER PRIMARY KEY AUTOINCREMENT,
-		zotero_key TEXT,
-		item_id    INTEGER,
-		note       TEXT,
-		FOREIGN KEY (item_id) REFERENCES items (id)
-	);
-
-	CREATE TABLE IF NOT EXISTS creators
-	(
+	CREATE TABLE IF NOT EXISTS creators (
 		id           INTEGER PRIMARY KEY AUTOINCREMENT,
-		item_id      INTEGER,
-		first_name   TEXT,
-		last_name    TEXT,
-		creator_type TEXT,
-		FOREIGN KEY (item_id) REFERENCES items (id)
+		item_key     TEXT NOT NULL,
+		creator_type TEXT NOT NULL DEFAULT '',
+		first_name   TEXT NOT NULL DEFAULT '',
+		last_name    TEXT NOT NULL DEFAULT '',
+		FOREIGN KEY (item_key) REFERENCES items(zotero_key) ON DELETE CASCADE
 	);`
 
 	_, err := db.Exec(schema)
