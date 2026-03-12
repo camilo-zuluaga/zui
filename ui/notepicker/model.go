@@ -83,6 +83,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 				return m, func() tea.Msg {
 					return NoteSelectedMsg{
+						ParentKey: m.parentKey,
 						ItemKey: selected.Key,
 						Content: selected.Note,
 						New:     false,
