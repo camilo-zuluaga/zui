@@ -79,7 +79,7 @@ func TestZoteroClientFetchItems(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		got, err := client.FetchItemsByCollection(ctx, "3UL5E9NK")
+		got, err := client.FetchItemsByCollection(ctx, "3UL5E9NK", 0, false)
 		if err != nil {
 			t.Fatalf("unexpected error %v", err)
 		}

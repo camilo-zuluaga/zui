@@ -29,7 +29,7 @@ func TestFollowURLPagination(t *testing.T) {
 
 			want := totalItems
 			ctx := context.Background()
-			got, err := client.FetchItemsByCollection(ctx, "AAAA")
+			got, err := client.FetchItemsByCollection(ctx, "AAAA", 0, false)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
