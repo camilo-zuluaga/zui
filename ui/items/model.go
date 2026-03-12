@@ -41,15 +41,15 @@ type Model struct {
 	height, width int
 	list          list.Model
 	detailVP      viewport.Model
-	focus    pane
-	helpText string
+	focus         pane
+	helpText      string
 }
 
 func New() Model {
 	items := []list.Item{}
 
 	l := list.New(items, NewDelegate(), 0, 0)
-	l.SetStatusBarItemName("Attachment", "Attachments")
+	l.SetStatusBarItemName("Item", "Items")
 	l.SetShowTitle(false)
 	l.SetShowHelp(false)
 	l.SetShowPagination(false)
@@ -90,6 +90,23 @@ func (m *Model) SetZoteroItems(zItems []zotero.ZoteroItem) {
 		items = append(items, c)
 	}
 	m.list.SetItems(items)
+	m.refreshDetails()
+}
+
+func (m *Model) UpdateNote(parentKey, noteKey, newContent string) {
+	items := m.list.Items()
+	for i, listItem := range items {
+		if itm, ok := listItem.(item); ok && itm.ZoteroItem.Key == parentKey {
+			for j, n := range itm.ZoteroItem.Data.Note {
+				if n.Key == noteKey {
+					itm.ZoteroItem.Data.Note[j].Note = newContent
+					break
+				}
+			}
+			m.list.SetItem(i, itm)
+			break
+		}
+	}
 	m.refreshDetails()
 }
 
