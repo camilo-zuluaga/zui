@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 
+	"github.com/camilo-zuluaga/zotero-tui/cache"
+	"github.com/camilo-zuluaga/zotero-tui/sync"
 	"github.com/camilo-zuluaga/zotero-tui/ui/attachpicker"
 	"github.com/camilo-zuluaga/zotero-tui/ui/cmds"
 	"github.com/camilo-zuluaga/zotero-tui/ui/collections"
@@ -33,6 +35,8 @@ type rootModel struct {
 
 	zotero          *zotero.ZoteroClient
 	systemPDFOpener *zotero.SystemPDFOpener
+	cache           *cache.Cache
+	sync            *sync.SyncService
 
 	collections  collections.Model
 	zoteroItems  items.Model
@@ -50,13 +54,15 @@ type rootModel struct {
 	spinner   spinner.Model
 }
 
-func NewRootModel(z *zotero.ZoteroClient) rootModel {
+func NewRootModel(z *zotero.ZoteroClient, c *cache.Cache, ss *sync.SyncService) rootModel {
 	zotero.InitClipboard()
 	s := spinner.New()
 	o := zotero.NewSystemPDFOpener()
 	return rootModel{
 		zotero:          z,
 		systemPDFOpener: o,
+		cache:           c,
+		sync:            ss,
 		collections:     collections.New(),
 		zoteroItems:     items.New(),
 		currentView:     CollectionsView,
@@ -69,7 +75,7 @@ func NewRootModel(z *zotero.ZoteroClient) rootModel {
 
 func (m rootModel) Init() tea.Cmd {
 	return tea.Batch(m.spinner.Tick,
-		cmds.FetchCollectionsCmd(m.zotero))
+		cmds.LoadCollectionsCmd(m.cache, m.sync))
 }
 
 func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -97,7 +103,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.zoteroItems.ClearItems()
 					m.zoteroItems.HelpText(items.ModeNormal)
 					return m, tea.Batch(m.spinner.Tick,
-						cmds.StreamCollectionItemsCmd(m.zotero, sel.Key))
+						cmds.LoadCollectionItemsCmd(m.cache, m.zotero, sel.Key))
 				}
 			}
 
@@ -204,7 +210,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.streamCh = msg.Ch
 		m.streamErr = msg.ErrCh
 		m.streaming = true
-		return m, cmds.WaitForPageCmd(m.streamCh, m.streamErr)
+		return m, cmds.WaitForPageCmd(m.streamCh, m.streamErr, msg.Cache)
 
 	case cmds.ZoteroItemsLoadedMsg:
 		m.loading = false
@@ -227,7 +233,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.streaming = true
 		m.zoteroItems.AppendZoteroItems(msg.Items)
-		return m, cmds.WaitForPageCmd(m.streamCh, m.streamErr)
+		return m, cmds.WaitForPageCmd(m.streamCh, m.streamErr, m.cache)
 
 	case search.SearchMsg:
 		m.loading = true
