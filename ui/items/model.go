@@ -113,11 +113,19 @@ func (m *Model) UpdateNote(parentKey, noteKey, newContent string) {
 func (m *Model) AppendZoteroItems(zItems []zotero.ZoteroItem) {
 	existing := m.list.Items()
 	for _, z := range zItems {
-		var title, desc, creators string
+		var title, desc, creators, date, doi string
 
 		title = z.Data.Title
 		creators = z.Data.CreatorSummary
-		desc = fmt.Sprintf("%s\n%s • [DOI] %s", creators, z.Data.Date, z.Data.DOI)
+		date = "No Date"
+		if z.Data.Date != "" {
+			date = z.Data.Date
+		}
+		doi = "No DOI"
+		if z.Data.DOI != "" {
+			doi = z.Data.DOI
+		}
+		desc = fmt.Sprintf("%s\n%s • [DOI] %s", creators, date, doi)
 		if z.Data.ShortTitle != "" {
 			title = z.Data.ShortTitle
 		}
