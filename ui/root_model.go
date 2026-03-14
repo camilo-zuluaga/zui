@@ -9,7 +9,7 @@ import (
 	"github.com/camilo-zuluaga/zotero-tui/ui/cmds"
 	"github.com/camilo-zuluaga/zotero-tui/ui/collections"
 	"github.com/camilo-zuluaga/zotero-tui/ui/items"
-	"github.com/camilo-zuluaga/zotero-tui/ui/note-editor"
+	noteeditor "github.com/camilo-zuluaga/zotero-tui/ui/note-editor"
 	"github.com/camilo-zuluaga/zotero-tui/ui/notepicker"
 	"github.com/camilo-zuluaga/zotero-tui/ui/search"
 	"github.com/camilo-zuluaga/zotero-tui/zotero"
@@ -203,6 +203,13 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmds.EditNoteCmd(m.zotero, msg.Key, msg.Content)
 		}
 		return m, cmds.SaveNoteCmd(m.zotero, msg.ParentKey, msg.Content)
+
+	case cmds.NoteSaved:
+		if !msg.Successful {
+			return m, nil
+		}
+		m.zoteroItems.AppendNote(msg.ParentKey, msg.NoteKey, msg.Content)
+		return m, nil
 
 	case cmds.CollectionLoadedMsg:
 		m.loading = false
