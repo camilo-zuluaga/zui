@@ -93,6 +93,19 @@ func (m *Model) SetZoteroItems(zItems []zotero.ZoteroItem) {
 	m.refreshDetails()
 }
 
+func (m *Model) AppendNote(parentKey, noteKey, newContent string) {
+	items := m.list.Items()
+	for i, listItem := range items {
+		if itm, ok := listItem.(item); ok && itm.ZoteroItem.Key == parentKey {
+			note := zotero.ZoteroNote{Key: noteKey, Note: newContent}
+			itm.ZoteroItem.Data.Note = append(itm.ZoteroItem.Data.Note, note)
+			m.list.SetItem(i, itm)
+			break
+		}
+	}
+	m.refreshDetails()
+}
+
 func (m *Model) UpdateNote(parentKey, noteKey, newContent string) {
 	items := m.list.Items()
 	for i, listItem := range items {
