@@ -113,15 +113,18 @@ func FetchItemChildrenCmd(z *zotero.ZoteroClient, parentKey string) tea.Cmd {
 
 type NoteSaved struct {
 	Successful bool
+	ParentKey  string
+	NoteKey    string
+	Content    string
 }
 
 func SaveNoteCmd(z *zotero.ZoteroClient, parentKey, content string) tea.Cmd {
 	return func() tea.Msg {
-		err := z.CreateNote(parentKey, content)
+		key, err := z.CreateNote(parentKey, content)
 		if err != nil {
 			return NoteSaved{Successful: false}
 		}
-		return NoteSaved{Successful: true}
+		return NoteSaved{Successful: true, ParentKey: parentKey, NoteKey: key, Content: content}
 	}
 }
 
