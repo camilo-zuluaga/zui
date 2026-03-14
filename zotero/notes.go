@@ -46,10 +46,10 @@ func marshalJSON(note Note) (io.Reader, error) {
 	return bytes.NewReader(marshalled), nil
 }
 
-func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
+func (z *ZoteroClient) CreateNote(parentItemKey, content string) (string, error) {
 	url, err := buildItemsURL(z.BaseURL, z.UserID, ItemsQuery{})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	note := Note{
@@ -60,21 +60,33 @@ func (z *ZoteroClient) CreateNote(parentItemKey, content string) error {
 
 	body, err := marshalJSON(note)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	res, err := z.makeRequest(http.MethodPost, url, body)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		responseBody, _ := io.ReadAll(res.Body)
-		return fmt.Errorf("failed to create note, status %d: %s", res.StatusCode, string(responseBody))
+		return "", fmt.Errorf("failed to create note, status %d: %s", res.StatusCode, string(responseBody))
 	}
 
-	return nil
+	var result struct {
+		Success map[string]string `json:"success"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	key, ok := result.Success["0"]
+	if !ok {
+		return "", fmt.Errorf("no key returned in response")
+	}
+
+	return key, nil
 }
 
 func (z *ZoteroClient) EditNote(itemKey, newContent string) error {
