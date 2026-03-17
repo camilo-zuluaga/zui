@@ -13,7 +13,10 @@ type Config struct {
 	Format     string `toml:"format"`
 	Style      string `toml:"style"`
 	NoteEditor string `toml:"note-editor"`
+	MaxItems   int    `toml:"max-items"`
 }
+
+const DefaultMaxItems = 200
 
 func LoadConfig() (*Config, error) {
 	homeDir, err := os.UserHomeDir()
