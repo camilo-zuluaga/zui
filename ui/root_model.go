@@ -98,7 +98,6 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = CollectionsView
 				return m, nil
 			}
-
 			if m.currentView == SearchView {
 				m.currentView = CollectionsView
 				return m, nil
@@ -324,7 +323,7 @@ func (m rootModel) View() string {
 
 	var body string
 
-	if m.loading && !m.streaming {
+	if m.loading {
 		body = lipgloss.NewStyle().
 			Height(m.height-3).
 			Width(m.width).
