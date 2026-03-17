@@ -37,7 +37,7 @@ func (z *ZoteroClient) StreamItemsByCollection(ctx context.Context, collectionKe
 	ch := make(chan []ZoteroGeneralItem)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- fetchStream(z, ctx, url, ch)
+		errCh <- fetchStream(z, ctx, url, ch, z.maxItems())
 	}()
 	return ch, errCh
 }
@@ -52,7 +52,7 @@ func (z *ZoteroClient) StreamSearch(ctx context.Context, query string) (<-chan [
 	ch := make(chan []ZoteroGeneralItem)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- fetchStream(z, ctx, url, ch)
+		errCh <- fetchStream(z, ctx, url, ch, z.maxItems())
 	}()
 	return ch, errCh
 }
