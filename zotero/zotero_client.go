@@ -22,3 +22,10 @@ func NewZoteroClient(baseURL, userID, apiKey string) *ZoteroClient {
 		Config:  cfg,
 	}
 }
+
+func (z *ZoteroClient) maxItems() int {
+	if z.Config != nil && z.Config.MaxItems > 0 {
+		return z.Config.MaxItems
+	}
+	return DefaultMaxItems
+}
