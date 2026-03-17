@@ -2,6 +2,7 @@ package items
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/camilo-zuluaga/zotero-tui/ui/cmds"
 	"github.com/camilo-zuluaga/zotero-tui/zotero"
@@ -55,8 +56,8 @@ func New() Model {
 	l.SetShowPagination(false)
 	l.InfiniteScrolling = true
 
-	l.Styles.FilterPrompt = l.Styles.FilterPrompt.
-		Foreground(lipgloss.Color("#FFFFFF"))
+	l.FilterInput.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	l.FilterInput.Cursor.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
 
 	l.Styles.StatusBar = l.Styles.StatusBar.
 		Align(lipgloss.Left).
@@ -131,7 +132,7 @@ func (m *Model) AppendZoteroItems(zItems []zotero.ZoteroItem) {
 		title = z.Data.Title
 		creators = z.Data.CreatorSummary
 		date = "No Date"
-		if z.Data.Date != "" {
+		if strings.TrimSpace(z.Data.Date) != "" {
 			date = z.Data.Date
 		}
 		doi = "No DOI"
