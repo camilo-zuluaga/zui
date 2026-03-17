@@ -162,7 +162,7 @@ func (m *Model) HelpText(msgType HelpMsgType) tea.Cmd {
 	var helpText string
 	switch msgType {
 	case ModeNormal:
-		helpText = "[tab] Switch pane • [enter] Load details • [n] Create/Edit note • [r] Read PDF • [b] Bibliography • [q] quit"
+		helpText = "[tab] Switch pane • [enter] Load details • [n] Create/Edit note • [r] Read PDF • [b] Bibliography • [esc] Back • [q] quit"
 
 	case ModeClipboard:
 		m.helpText = helpStyle.Render("Copied to clipboard!")

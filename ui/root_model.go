@@ -93,6 +93,16 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "esc":
+			if m.currentView == ItemsView {
+				m.currentView = CollectionsView
+				return m, nil
+			}
+
+			if m.currentView == SearchView {
+				m.currentView = CollectionsView
+				return m, nil
+			}
 		case "q":
 			return m, tea.Quit
 		case "enter":

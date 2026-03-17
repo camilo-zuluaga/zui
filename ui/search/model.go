@@ -58,6 +58,6 @@ func (m Model) View() string {
 	return fmt.Sprintf(
 		"Input the [Title | Creator | Year] to search:\n\n%s\n\n%s",
 		m.textInput.View(),
-		helpStyle.Render("(esc to quit)"),
+		helpStyle.Render("(esc to go back)"),
 	) + "\n"
 }
