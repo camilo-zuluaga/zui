@@ -197,8 +197,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case noteeditor.SavedNoteMsg:
 		m.currentView = ItemsView
 		if !msg.New {
-			m.zoteroItems.UpdateNote(msg.ParentKey, msg.Key, msg.Content)
-			return m, cmds.EditNoteCmd(m.zotero, msg.Key, msg.Content)
+			return m, cmds.EditNoteCmd(m.zotero, msg.ParentKey, msg.Key, msg.Content)
 		}
 		return m, cmds.SaveNoteCmd(m.zotero, msg.ParentKey, msg.Content)
 
@@ -208,14 +207,16 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if !msg.New {
-			// this is very optimistic, we need another msg
-			m.zoteroItems.UpdateNote(msg.ParentKey, msg.Key, msg.Content)
-			return m, cmds.EditNoteCmd(m.zotero, msg.Key, msg.Content)
+			return m, cmds.EditNoteCmd(m.zotero, msg.ParentKey, msg.Key, msg.Content)
 		}
 		return m, cmds.SaveNoteCmd(m.zotero, msg.ParentKey, msg.Content)
 
 	case cmds.NoteSaved:
 		if !msg.Successful {
+			return m, nil
+		}
+		if msg.Edited {
+			m.zoteroItems.UpdateNote(msg.ParentKey, msg.NoteKey, msg.Content)
 			return m, nil
 		}
 		m.zoteroItems.AppendNote(msg.ParentKey, msg.NoteKey, msg.Content)
