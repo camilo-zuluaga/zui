@@ -2,8 +2,9 @@ package zotero
 
 // General Zotero item trying to deal with heterogeneous data
 type ZoteroGeneralItem struct {
-	Key  string `json:"key"`
-	Meta struct {
+	Key     string `json:"key"`
+	Version int    `json:"version"`
+	Meta    struct {
 		CreatorSummary string `json:"creatorSummary"`
 	}
 	Data struct {
@@ -30,9 +31,13 @@ func (z *ZoteroGeneralItem) isNote() bool {
 	return z.Data.ItemType == "note"
 }
 
+type ZoteroItemVersion struct {
+}
+
 type ZoteroItem struct {
-	Key  string         `json:"key"`
-	Data ZoteroItemData `json:"data"`
+	Key     string         `json:"key"`
+	Version int            `json:"version"`
+	Data    ZoteroItemData `json:"data"`
 }
 
 type ZoteroItemData struct {
