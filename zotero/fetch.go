@@ -50,9 +50,10 @@ func fetch[T any](c *ZoteroClient, ctx context.Context, url string) ([]T, error)
 	return allItems, nil
 }
 
-func fetchStream[T any](c *ZoteroClient, ctx context.Context, url string, ch chan<- []T) error {
+func fetchStream[T any](c *ZoteroClient, ctx context.Context, url string, ch chan<- []T, maxItems int) error {
 	defer close(ch)
 	currentURL := url
+	total := 0
 
 	for currentURL != "" {
 		items, nextURL, err := fetchPage[T](c, ctx, currentURL)
@@ -60,10 +61,16 @@ func fetchStream[T any](c *ZoteroClient, ctx context.Context, url string, ch cha
 			return err
 		}
 
+		total += len(items)
+
 		select {
 		case ch <- items:
 		case <-ctx.Done():
 			return ctx.Err()
+		}
+
+		if maxItems > 0 && total >= maxItems {
+			break
 		}
 
 		currentURL = nextURL
