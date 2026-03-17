@@ -116,6 +116,7 @@ type NoteSaved struct {
 	ParentKey  string
 	NoteKey    string
 	Content    string
+	Edited     bool
 }
 
 func SaveNoteCmd(z *zotero.ZoteroClient, parentKey, content string) tea.Cmd {
@@ -124,17 +125,17 @@ func SaveNoteCmd(z *zotero.ZoteroClient, parentKey, content string) tea.Cmd {
 		if err != nil {
 			return NoteSaved{Successful: false}
 		}
-		return NoteSaved{Successful: true, ParentKey: parentKey, NoteKey: key, Content: content}
+		return NoteSaved{Successful: true, ParentKey: parentKey, NoteKey: key, Content: content, Edited: false}
 	}
 }
 
-func EditNoteCmd(z *zotero.ZoteroClient, itemKey, newContent string) tea.Cmd {
+func EditNoteCmd(z *zotero.ZoteroClient, parentKey, itemKey, newContent string) tea.Cmd {
 	return func() tea.Msg {
 		err := z.EditNote(itemKey, newContent)
 		if err != nil {
 			return NoteSaved{Successful: false}
 		}
-		return NoteSaved{Successful: true}
+		return NoteSaved{Successful: true, ParentKey: parentKey, NoteKey: itemKey, Content: newContent, Edited: true}
 	}
 }
 
