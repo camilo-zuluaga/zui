@@ -57,7 +57,7 @@ func (c *Cache) UpsertCollections(cols []zotero.Collection) error {
 func (c *Cache) GetItemsByCollection(collectionKey string) ([]zotero.ZoteroItem, error) {
 	rows, err := c.db.Query(`
 		SELECT i.zotero_key, i.version, i.item_type, i.title, i.short_title,
-		       i.date, i.creator_summary, i.doi, i.url, i.date_modified
+		       COALESCE(NULLIF(i.date, ''), 'No Date') as date, i.creator_summary, COALESCE(NULLIF(i.doi, ''), 'No DOI') as doi, i.url, i.date_modified
 		FROM items i
 		JOIN item_collections ic ON ic.item_key = i.zotero_key
 		WHERE ic.collection_key = ?
