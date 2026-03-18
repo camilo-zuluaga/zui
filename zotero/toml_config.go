@@ -1,7 +1,6 @@
 package zotero
 
 import (
-	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -26,7 +25,11 @@ func LoadConfig() (*Config, error) {
 	path := filepath.Join(homeDir, ".config", "zui", "config.toml")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, errors.New("Config file does not exist.")
+		return &Config{
+			Format:   "biblatex",
+			Style:    "apa",
+			MaxItems: DefaultMaxItems,
+		}, nil
 	} else if err != nil {
 		return nil, err
 	}
