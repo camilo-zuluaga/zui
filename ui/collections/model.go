@@ -66,6 +66,14 @@ func (m *Model) SetSize(width, height int) {
 	m.list.SetSize(width-4, height-4)
 }
 
+func (m Model) IsFiltering() bool {
+	return m.list.FilterState() == list.Filtering
+}
+
+func (m Model) IsFilterApplied() bool {
+	return m.list.IsFiltered()
+}
+
 func (m Model) SelectedCollection() *zotero.Collection {
 	it, ok := m.list.SelectedItem().(item)
 	if !ok {
