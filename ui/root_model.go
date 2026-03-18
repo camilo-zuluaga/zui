@@ -3,17 +3,20 @@ package ui
 import (
 	"fmt"
 
+	"github.com/99designs/keyring"
 	"github.com/camilo-zuluaga/zotero-tui/cache"
 	"github.com/camilo-zuluaga/zotero-tui/sync"
 	"github.com/camilo-zuluaga/zotero-tui/ui/attachpicker"
 	"github.com/camilo-zuluaga/zotero-tui/ui/cmds"
 	"github.com/camilo-zuluaga/zotero-tui/ui/collections"
+	"github.com/camilo-zuluaga/zotero-tui/ui/initial"
 	"github.com/camilo-zuluaga/zotero-tui/ui/items"
 	noteeditor "github.com/camilo-zuluaga/zotero-tui/ui/note-editor"
 	"github.com/camilo-zuluaga/zotero-tui/ui/notepicker"
 	"github.com/camilo-zuluaga/zotero-tui/ui/search"
 	"github.com/camilo-zuluaga/zotero-tui/zotero"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -27,6 +30,7 @@ const (
 	NotePickerView
 	SearchView
 	AttachmentView
+	InitialView
 )
 
 type rootModel struct {
@@ -38,6 +42,7 @@ type rootModel struct {
 	cache           *cache.Cache
 	sync            *sync.SyncService
 
+	initial      initial.Model
 	collections  collections.Model
 	zoteroItems  items.Model
 	noteEditor   noteeditor.Model
@@ -73,7 +78,25 @@ func NewRootModel(z *zotero.ZoteroClient, c *cache.Cache, ss *sync.SyncService) 
 	}
 }
 
+func NewInitialRootModel(c *cache.Cache) rootModel {
+	zotero.InitClipboard()
+	s := spinner.New()
+	return rootModel{
+		cache:       c,
+		collections: collections.New(),
+		zoteroItems: items.New(),
+		currentView: InitialView,
+		initial:     initial.InitialModel(),
+		noteEditor:  noteeditor.InitialModel("", "", "", false),
+		notepicker:  notepicker.New(""),
+		spinner:     s,
+	}
+}
+
 func (m rootModel) Init() tea.Cmd {
+	if m.currentView == InitialView {
+		return textinput.Blink
+	}
 	return tea.Batch(m.spinner.Tick,
 		cmds.LoadCollectionsCmd(m.cache, m.sync))
 }
@@ -92,6 +115,16 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notepicker.SetSize(m.width, bodyHeight)
 
 	case tea.KeyMsg:
+		if m.isFiltering() {
+			break
+		}
+		if m.isFilterApplied() {
+			key := msg.String()
+			if key != "enter" && key != "n" && key != "r" && key != "b" && key != "q" {
+				// navigation keys (esc, arrows, etc.) go to the list to manage the filter
+				break
+			}
+		}
 		switch msg.String() {
 		case "esc":
 			if m.currentView == ItemsView {
@@ -221,6 +254,22 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.zoteroItems.AppendNote(msg.ParentKey, msg.NoteKey, msg.Content)
 		return m, nil
 
+	case initial.CredentialsMsg:
+		kr, err := keyring.Open(keyring.Config{
+			ServiceName: "zotero-tui",
+		})
+		if err == nil {
+			_ = kr.Set(keyring.Item{Key: "api-key", Data: []byte(msg.APIKey)})
+			_ = kr.Set(keyring.Item{Key: "user-id", Data: []byte(msg.UserID)})
+		}
+		m.zotero = zotero.NewZoteroClient("https://api.zotero.org", msg.UserID, msg.APIKey)
+		m.systemPDFOpener = zotero.NewSystemPDFOpener()
+		m.sync = sync.New(m.cache, m.zotero)
+		m.currentView = CollectionsView
+		m.loading = true
+		return m, tea.Batch(m.spinner.Tick,
+			cmds.LoadCollectionsCmd(m.cache, m.sync))
+
 	case cmds.CollectionLoadedMsg:
 		m.loading = false
 		m.collections.SetZoteroCollections(msg.Items)
@@ -295,6 +344,8 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.currentView {
+	case InitialView:
+		m.initial, cmd = m.initial.Update(msg)
 	case CollectionsView:
 		m.collections, cmd = m.collections.Update(msg)
 	case ItemsView:
@@ -331,6 +382,8 @@ func (m rootModel) View() string {
 			Render(fmt.Sprintf("\n%s Loading Items", m.spinner.View()))
 	} else {
 		switch m.currentView {
+		case InitialView:
+			body = m.initial.View()
 		case CollectionsView:
 			body = m.collections.View()
 		case ItemsView:
@@ -353,6 +406,26 @@ func (m rootModel) View() string {
 	)
 
 	return content
+}
+
+func (m rootModel) isFiltering() bool {
+	switch m.currentView {
+	case CollectionsView:
+		return m.collections.IsFiltering()
+	case ItemsView:
+		return m.zoteroItems.IsFiltering()
+	}
+	return false
+}
+
+func (m rootModel) isFilterApplied() bool {
+	switch m.currentView {
+	case CollectionsView:
+		return m.collections.IsFilterApplied()
+	case ItemsView:
+		return m.zoteroItems.IsFilterApplied()
+	}
+	return false
 }
 
 func (m rootModel) externalEditor() string {
