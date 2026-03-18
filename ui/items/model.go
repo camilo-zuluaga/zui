@@ -101,10 +101,10 @@ func (m *Model) AppendNote(parentKey, noteKey, newContent string) {
 			note := zotero.ZoteroNote{Key: noteKey, Note: newContent}
 			itm.ZoteroItem.Data.Note = append(itm.ZoteroItem.Data.Note, note)
 			m.list.SetItem(i, itm)
-			break
+			m.refreshDetailsForItem(&itm.ZoteroItem)
+			return
 		}
 	}
-	m.refreshDetails()
 }
 
 func (m *Model) UpdateNote(parentKey, noteKey, newContent string) {
@@ -118,10 +118,10 @@ func (m *Model) UpdateNote(parentKey, noteKey, newContent string) {
 				}
 			}
 			m.list.SetItem(i, itm)
-			break
+			m.refreshDetailsForItem(&itm.ZoteroItem)
+			return
 		}
 	}
-	m.refreshDetails()
 }
 
 func (m *Model) AppendZoteroItems(zItems []zotero.ZoteroItem) {
@@ -181,16 +181,33 @@ func (m *Model) UpdateChildrenItems(parentKey string, attachments []zotero.Zoter
 			itm.ZoteroItem.Data.Attachment = attachments
 			itm.ZoteroItem.Data.Note = notes
 			m.list.SetItem(i, itm)
-			break
+			m.refreshDetailsForItem(&itm.ZoteroItem)
+			return
 		}
 	}
-	m.refreshDetails()
+}
+
+func (m Model) IsFiltering() bool {
+	return m.list.FilterState() == list.Filtering
+}
+
+func (m Model) IsFilterApplied() bool {
+	return m.list.IsFiltered()
 }
 
 func (m Model) SelectedZoteroItem() *zotero.ZoteroItem {
 	it, ok := m.list.SelectedItem().(item)
 	if !ok {
 		return nil
+	}
+	// When filtered, the visible item may be stale
+	// Look up the current version from the full list
+	if m.list.IsFiltered() {
+		for _, listItem := range m.list.Items() {
+			if full, ok := listItem.(item); ok && full.ZoteroItem.Key == it.ZoteroItem.Key {
+				return &full.ZoteroItem
+			}
+		}
 	}
 	return &it.ZoteroItem
 }
@@ -234,13 +251,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m *Model) refreshDetails() {
+	m.refreshDetailsForItem(m.SelectedZoteroItem())
+}
+
+func (m *Model) refreshDetailsForItem(zi *zotero.ZoteroItem) {
 	contentWidth := max(m.detailVP.Width, 10)
-	m.detailVP.SetContent(m.buildDetailsContent(contentWidth))
+	m.detailVP.SetContent(m.buildDetailsContent(contentWidth, zi))
 	m.detailVP.GotoTop()
 }
 
-func (m Model) buildDetailsContent(contentWidth int) string {
-	zi := m.SelectedZoteroItem()
+func (m Model) buildDetailsContent(contentWidth int, zi *zotero.ZoteroItem) string {
 	if zi == nil {
 		return detailLabelStyle.Render("No attachment selected")
 	}
