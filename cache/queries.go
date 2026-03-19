@@ -163,6 +163,19 @@ func (c *Cache) UpsertItems(items []zotero.ZoteroItem) error {
 	return tx.Commit()
 }
 
+func (c *Cache) ClearCollections() error {
+	_, err := c.db.Exec("DELETE FROM collections")
+	return err
+}
+
+func (c *Cache) ClearItemsByCollection(collectionKey string) error {
+	_, err := c.db.Exec(`
+		DELETE FROM items WHERE zotero_key IN (
+			SELECT item_key FROM item_collections WHERE collection_key = ?
+		)`, collectionKey)
+	return err
+}
+
 func (c *Cache) getCreators(itemKey string) ([]zotero.ZoteroItemCreator, error) {
 	rows, err := c.db.Query(
 		"SELECT creator_type, first_name, last_name FROM creators WHERE item_key = ?", itemKey)
