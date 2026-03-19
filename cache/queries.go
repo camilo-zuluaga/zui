@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/camilo-zuluaga/zotero-tui/zotero"
+	"github.com/camilo-zuluaga/zui/zotero"
 )
 
 func (c *Cache) GetCollections() ([]zotero.Collection, error) {

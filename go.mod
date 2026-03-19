@@ -1,12 +1,14 @@
-module github.com/camilo-zuluaga/zotero-tui
+module github.com/camilo-zuluaga/zui
 
 go 1.25.4
 
-require github.com/charmbracelet/bubbles v0.21.1
+require (
+	github.com/99designs/keyring v1.2.2
+	github.com/charmbracelet/bubbles v0.21.1
+)
 
 require (
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
-	github.com/99designs/keyring v1.2.2 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect

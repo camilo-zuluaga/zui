@@ -1,6 +1,6 @@
 package cache
 
-import "github.com/camilo-zuluaga/zotero-tui/zotero"
+import "github.com/camilo-zuluaga/zui/zotero"
 
 func itemToZotero(key string, version int, itemType, title, shortTitle, date, creatorSummary, doi, url, dateModified string,
 	collections []string, creators []zotero.ZoteroItemCreator,

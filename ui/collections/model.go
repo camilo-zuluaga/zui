@@ -3,7 +3,7 @@ package collections
 import (
 	"fmt"
 
-	"github.com/camilo-zuluaga/zotero-tui/zotero"
+	"github.com/camilo-zuluaga/zui/zotero"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/camilo-zuluaga/zotero-tui/ui/cmds"
-	"github.com/camilo-zuluaga/zotero-tui/zotero"
+	"github.com/camilo-zuluaga/zui/ui/cmds"
+	"github.com/camilo-zuluaga/zui/zotero"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"

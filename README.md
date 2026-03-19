@@ -5,13 +5,13 @@ A minimalistic terminal user interface for [Zotero](https://www.zotero.org/).
 ## Install
 
 ```bash
-go install github.com/camilo-zuluaga/zotero-tui@latest
+go install github.com/camilo-zuluaga/zui@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/camilo-zuluaga/zotero-tui.git
+git clone https://github.com/camilo-zuluaga/zui.git
 cd zotero-tui
 go build -o zui .
 ```

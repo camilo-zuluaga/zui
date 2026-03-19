@@ -3,8 +3,8 @@ package sync
 import (
 	"context"
 
-	"github.com/camilo-zuluaga/zotero-tui/cache"
-	"github.com/camilo-zuluaga/zotero-tui/zotero"
+	"github.com/camilo-zuluaga/zui/cache"
+	"github.com/camilo-zuluaga/zui/zotero"
 )
 
 type SyncService struct {

@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/99designs/keyring"
-	"github.com/camilo-zuluaga/zotero-tui/cache"
-	"github.com/camilo-zuluaga/zotero-tui/sync"
-	"github.com/camilo-zuluaga/zotero-tui/ui"
-	"github.com/camilo-zuluaga/zotero-tui/zotero"
+	"github.com/camilo-zuluaga/zui/cache"
+	"github.com/camilo-zuluaga/zui/sync"
+	"github.com/camilo-zuluaga/zui/ui"
+	"github.com/camilo-zuluaga/zui/zotero"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
