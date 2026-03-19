@@ -50,7 +50,8 @@ type rootModel struct {
 	searchInput  search.Model
 	attachReader attachpicker.Model
 
-	currentView currentView
+	currentView          currentView
+	currentCollectionKey string
 
 	loading   bool
 	streaming bool
@@ -120,7 +121,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.isFilterApplied() {
 			key := msg.String()
-			if key != "enter" && key != "n" && key != "r" && key != "b" && key != "q" {
+			if key != "enter" && key != "n" && key != "r" && key != "b" && key != "q" && key != "ctrl+r" {
 				// navigation keys (esc, arrows, etc.) go to the list to manage the filter
 				break
 			}
@@ -137,11 +138,28 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "q":
 			return m, tea.Quit
+		case "ctrl+r":
+			if m.currentView == CollectionsView {
+				m.loading = true
+				m.collections = collections.New()
+				m.collections.SetSize(m.width, m.height-2)
+				_ = m.cache.ClearCollections()
+				return m, tea.Batch(m.spinner.Tick,
+					cmds.LoadCollectionsCmd(m.cache, m.sync))
+			}
+			if m.currentView == ItemsView && m.currentCollectionKey != "" {
+				m.loading = true
+				m.zoteroItems.ClearItems()
+				_ = m.cache.ClearItemsByCollection(m.currentCollectionKey)
+				return m, tea.Batch(m.spinner.Tick,
+					cmds.LoadCollectionItemsCmd(m.cache, m.zotero, m.currentCollectionKey))
+			}
 		case "enter":
 			if m.currentView == CollectionsView {
 				if sel := m.collections.SelectedCollection(); sel != nil {
 					m.loading = true
 					m.currentView = ItemsView
+					m.currentCollectionKey = sel.Key
 					m.zoteroItems.ClearItems()
 					m.zoteroItems.HelpText(items.ModeNormal)
 					return m, tea.Batch(m.spinner.Tick,
