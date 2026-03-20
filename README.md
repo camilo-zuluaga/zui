@@ -2,6 +2,9 @@
 
 A minimalistic terminal user interface for [Zotero](https://www.zotero.org/).
 
+![demo](https://github.com/user-attachments/assets/e3913f93-cf5f-40d3-a41c-20d6883410e2)
+
+
 ## Install
 
 ```bash
