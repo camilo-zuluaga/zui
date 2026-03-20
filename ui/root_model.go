@@ -5,6 +5,7 @@ import (
 
 	"github.com/99designs/keyring"
 	"github.com/camilo-zuluaga/zui/cache"
+	"github.com/camilo-zuluaga/zui/clipboard"
 	"github.com/camilo-zuluaga/zui/sync"
 	"github.com/camilo-zuluaga/zui/ui/attachpicker"
 	"github.com/camilo-zuluaga/zui/ui/cmds"
@@ -61,7 +62,6 @@ type rootModel struct {
 }
 
 func NewRootModel(z *zotero.ZoteroClient, c *cache.Cache, ss *sync.SyncService) rootModel {
-	zotero.InitClipboard()
 	s := spinner.New()
 	o := zotero.NewSystemPDFOpener()
 	return rootModel{
@@ -80,7 +80,6 @@ func NewRootModel(z *zotero.ZoteroClient, c *cache.Cache, ss *sync.SyncService) 
 }
 
 func NewInitialRootModel(c *cache.Cache) rootModel {
-	zotero.InitClipboard()
 	s := spinner.New()
 	return rootModel{
 		cache:       c,
@@ -345,7 +344,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err != nil {
 			return m, nil
 		}
-		zotero.WriteClipboard(msg.Bib)
+		clipboard.Write(msg.Bib)
 		return m, m.zoteroItems.HelpText(items.ModeClipboard)
 
 	case cmds.ResetHelpMsg:
