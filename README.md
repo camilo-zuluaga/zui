@@ -11,11 +11,13 @@ A minimalistic terminal user interface for [Zotero](https://www.zotero.org/).
 go install github.com/camilo-zuluaga/zui@latest
 ```
 
+Or download a prebuilt binary from [Releases](https://github.com/camilo-zuluaga/zui/releases).
+
 Or build from source:
 
 ```bash
 git clone https://github.com/camilo-zuluaga/zui.git
-cd zotero-tui
+cd zui
 go build -o zui .
 ```
 
