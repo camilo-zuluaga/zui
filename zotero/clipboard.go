@@ -3,6 +3,8 @@ package zotero
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"golang.design/x/clipboard"
 )
@@ -15,5 +17,11 @@ func InitClipboard() {
 }
 
 func WriteClipboard(text string) {
+	if os.Getenv("WAYLAND_DISPLAY") != "" {
+		cmd := exec.Command("wl-copy")
+		cmd.Stdin = strings.NewReader(text)
+		cmd.Run()
+		return
+	}
 	clipboard.Write(clipboard.FmtText, []byte(text))
 }
